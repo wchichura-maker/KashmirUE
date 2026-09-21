@@ -27,10 +27,19 @@ validação consolidada ao final. Não há commit ou push automático.
 
 ## UE1 — Personagem e locomoção
 
-### UE1.1 — Personagem canônico
+### UE1.1 — Personagem canônico — EM ANDAMENTO
 
-- `ACharacter`, Character Movement, Enhanced Input, câmera third-person.
-- Movimento relativo à câmera, strafe, lock-on e esquiva em oito direções.
+- `ACharacter`, Character Movement e Enhanced Input.
+- Câmera third-person independente do facing, com zoom, collision avoidance e
+  suavização.
+- Controle de exploração inspirado em MMO: forward/backpedal/strafe relativos
+  ao facing do personagem; câmera livre; RMB alinha corpo e câmera.
+- Movimento diagonal normalizado e velocidades parametrizadas.
+- Sprint condicionado à componente frontal do movimento.
+- Consolidar configuração data-driven de locomoção.
+- Implementar lock-on.
+- Implementar esquiva em oito direções.
+- Executar validação consolidada do UE1.1.
 
 ### UE1.2 — Pipeline de animação
 
@@ -80,8 +89,30 @@ validação consolidada ao final. Não há commit ou push automático.
 - Replays, persistência e compatibilidade de schema.
 - Magia, projéteis, tiro/arremesso, mundo e sistemas P1+.
 
-## Primeiro bloco operacional
+## Estado operacional atual
 
-UE0.1 está iniciado com o esqueleto C++. O próximo trabalho é concluir sua
-validação consolidada e, em seguida, executar UE0.2 antes de importar modelos
-ou portar sistemas de combate.
+UE0.1, UE0.2 e UE0.3 estão concluídos e possuem validação consolidada.
+
+O desenvolvimento está atualmente em **UE1.1 — Personagem canônico**.
+
+Estado validado:
+
+- `ACharacter` e GameMode funcionais;
+- Enhanced Input funcional;
+- câmera third-person;
+- câmera e character facing independentes;
+- controle de facing por RMB;
+- movimento forward/backpedal/strafe;
+- normalização de movimento diagonal;
+- sprint frontal;
+- zoom suave;
+- camera collision;
+- camera lag.
+
+Próximos trabalhos do UE1.1:
+
+1. consolidar os parâmetros de locomoção em configuração data-driven;
+2. implementar lock-on;
+3. implementar dodge em oito direções;
+4. executar validação consolidada do UE1.1;
+5. avançar para UE1.2 somente após aprovação.

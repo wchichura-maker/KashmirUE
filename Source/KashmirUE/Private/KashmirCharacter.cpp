@@ -1,4 +1,5 @@
 #include "KashmirCharacter.h"
+#include "KashmirMovementConfig.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
@@ -14,15 +15,34 @@ AKashmirCharacter::AKashmirCharacter()
     GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
     bUseControllerRotationPitch = false; bUseControllerRotationYaw = false; bUseControllerRotationRoll = false;
     UCharacterMovementComponent* Movement = GetCharacterMovement();
-    Movement->bOrientRotationToMovement = true; Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f); Movement->MaxWalkSpeed = 500.0f; Movement->BrakingDecelerationWalking = 1800.0f;
+    Movement->bOrientRotationToMovement = false;
+    Movement->bUseControllerDesiredRotation = false;
+    Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
+    Movement->MaxWalkSpeed = 450.0f;
+    Movement->BrakingDecelerationWalking = 1800.0f;
+    Movement->MaxAcceleration = 2048.0f;
+    Movement->GroundFriction = 8.0f;
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-    CameraBoom->SetupAttachment(RootComponent); CameraBoom->TargetArmLength = 360.0f; CameraBoom->SocketOffset = FVector(0.0f, 55.0f, 70.0f); CameraBoom->bUsePawnControlRotation = true;
+    CameraBoom->SetupAttachment(RootComponent);
+    CameraBoom->TargetArmLength = 350.0f;
+    CameraBoom->SocketOffset = FVector(0.0f, 0.0f, 60.0f);
+    CameraBoom->bUsePawnControlRotation = true;
+
+    CameraBoom->bDoCollisionTest = true;
+    CameraBoom->ProbeSize = 12.0f;
+
+    CameraBoom->bEnableCameraLag = true;
+    CameraBoom->CameraLagSpeed = 12.0f;
+
+    CameraBoom->bEnableCameraRotationLag = true;
+    CameraBoom->CameraRotationLagSpeed = 15.0f;
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); FollowCamera->bUsePawnControlRotation = false;
 }
 void AKashmirCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    ApplyMovementConfig();
     const APlayerController* PC = Cast<APlayerController>(GetController());
     if (PC == nullptr || PlayerMappingContext == nullptr) { return; }
     const ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
@@ -54,14 +74,82 @@ void AKashmirCharacter::SetupPlayerInputComponent(UInputComponent* Component)
         );
     }
 }
+void AKashmirCharacter::ApplyMovementConfig()
+{
+    if (MovementConfig == nullptr)
+    {
+        return;
+    }
+
+    UCharacterMovementComponent* Movement = GetCharacterMovement();
+    if (Movement == nullptr)
+    {
+        return;
+    }
+
+    Movement->MaxWalkSpeed = MovementConfig->WalkSpeed;
+    Movement->MaxAcceleration = MovementConfig->MaxAcceleration;
+    Movement->BrakingDecelerationWalking =
+        MovementConfig->BrakingDecelerationWalking;
+    Movement->GroundFriction = MovementConfig->GroundFriction;
+    Movement->RotationRate =
+        FRotator(0.0f, MovementConfig->RotationRateYaw, 0.0f);
+}
+
+float AKashmirCharacter::GetConfiguredWalkSpeed() const
+{
+    return MovementConfig
+        ? MovementConfig->WalkSpeed
+        : 450.0f;
+}
+
+float AKashmirCharacter::GetConfiguredSprintSpeed() const
+{
+    return MovementConfig
+        ? MovementConfig->SprintSpeed
+        : 650.0f;
+}
+
 void AKashmirCharacter::Move(const FInputActionValue& Value)
 {
-    if (Controller == nullptr) return;
+    if (Controller == nullptr)
+    {
+        return;
+    }
 
     const FVector2D RawInput = Value.Get<FVector2D>();
-    const FVector2D Input = RawInput.GetClampedToMaxSize(1.0f);
 
-    const FRotator ActorYaw(0.0f, GetActorRotation().Yaw, 0.0f);
+    const float StrafeMultiplier =
+        MovementConfig
+            ? MovementConfig->StrafeMultiplier
+            : 0.70f;
+
+    const float BackpedalMultiplier =
+        MovementConfig
+            ? MovementConfig->BackpedalMultiplier
+            : 0.50f;
+
+    FVector2D AdjustedInput = RawInput;
+
+    // Horizontal input always represents strafe in the default
+    // exploration locomotion policy.
+    AdjustedInput.X *= StrafeMultiplier;
+
+    // Only backward movement receives the backpedal penalty.
+    if (AdjustedInput.Y < 0.0f)
+    {
+        AdjustedInput.Y *= BackpedalMultiplier;
+    }
+
+    // Prevent diagonal movement from producing extra magnitude.
+    const FVector2D Input =
+        AdjustedInput.GetClampedToMaxSize(1.0f);
+
+    const FRotator ActorYaw(
+        0.0f,
+        GetActorRotation().Yaw,
+        0.0f
+    );
 
     AddMovementInput(
         FRotationMatrix(ActorYaw).GetUnitAxis(EAxis::X),

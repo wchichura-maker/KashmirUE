@@ -7,6 +7,7 @@
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
+class UKashmirMovementConfig;
 class USpringArmComponent;
 struct FInputActionValue;
 
@@ -31,6 +32,14 @@ protected:
     void RequestDodge();
     void ToggleLockOn();
 
+    void ApplyMovementConfig();
+
+    UFUNCTION(BlueprintPure, Category="Movement|Config")
+    float GetConfiguredWalkSpeed() const;
+
+    UFUNCTION(BlueprintPure, Category="Movement|Config")
+    float GetConfiguredSprintSpeed() const;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
     TObjectPtr<USpringArmComponent> CameraBoom;
 
@@ -54,6 +63,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> MouseTurnCharacterAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Config")
+    TObjectPtr<UKashmirMovementConfig> MovementConfig;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Intent")
     bool bDodgeRequested = false;
