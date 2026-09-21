@@ -1,0 +1,30 @@
+# Unreal generated
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Visual Studio
+.vs/
+*.sln
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+*.userprefs
+
+# VS Code local
+.vscode/
+
+# Build / temp
+Build/
+*.tmp
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Unreal local caches
+Plugins/*/Intermediate/
+Plugins/*/Binaries/

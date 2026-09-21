@@ -1,0 +1,260 @@
+{
+  "assets": [
+    {
+      "bytes": 2233593,
+      "duplicate_of": "",
+      "format": "res",
+      "license": "Unlicense/CC0",
+      "migration_status": "source_recovery_required",
+      "sha256": "7fa1b8efb5afdd962da46f2b309cb5e4f3bd0886c5650c7c6bb91e04398be8d6",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/animations/cc0_souls/MeleeLib.res",
+      "unreal_destination": ""
+    },
+    {
+      "bytes": 1587224,
+      "duplicate_of": "",
+      "format": "bin",
+      "license": "CC0-1.0",
+      "migration_status": "candidate_reimport",
+      "sha256": "6e65377d81558333c4093dbb144a48fd19019343d82b1a3a7992a98ec0e0543c",
+      "source": "Quaternius Universal Animation Library standard/free subset",
+      "source_path": "assets/animations/quaternius/AnimationLibrary_Godot_Standard.bin",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/Quaternius"
+    },
+    {
+      "bytes": 2630727,
+      "duplicate_of": "",
+      "format": "gltf",
+      "license": "CC0-1.0",
+      "migration_status": "candidate_reimport",
+      "sha256": "00c8f17a798c14e6d544a62a6c095036d414e2b485377afdddfb1879bb6402f3",
+      "source": "Quaternius Universal Animation Library standard/free subset",
+      "source_path": "assets/animations/quaternius/AnimationLibrary_Godot_Standard.gltf",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/Quaternius"
+    },
+    {
+      "bytes": 7169,
+      "duplicate_of": "",
+      "format": "txt",
+      "license": "CC0-1.0",
+      "migration_status": "candidate_reimport",
+      "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328",
+      "source": "Quaternius Universal Animation Library standard/free subset",
+      "source_path": "assets/animations/quaternius/LICENSE.txt",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/Quaternius"
+    },
+    {
+      "bytes": 416,
+      "duplicate_of": "",
+      "format": "tres",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "dc41c0d9404f02dee471b7b26924744589c0fb7802103c5378ce24c81cd4a78b",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/cloth.tres",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 986,
+      "duplicate_of": "",
+      "format": "tres",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "9acabd62e61f3d304c858399f2f033e7148641ebaebba5b03293276bb6ec5a8c",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/eyes.tres",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 4949609,
+      "duplicate_of": "",
+      "format": "png",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "f01fead80c1f61251616fd7752214f9eb816d2bcef3edbb908d7b636bd7d9510",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/feminine_albedo.png",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 2985588,
+      "duplicate_of": "",
+      "format": "png",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "de5724bf828a7190f6320da1ad7ff58b2ee3e0c25664e48e54930f39781c00cd",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/feminine_normals.png",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 436,
+      "duplicate_of": "",
+      "format": "tres",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "71f2a7e133388456e3ccdfa2f492c70d6e9582db4c00344a8d6fe0410f1ca9ae",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/hair_material.tres",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 4141465,
+      "duplicate_of": "",
+      "format": "png",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "256c87ccc81a72dde02079b9c9c53ca7b5ce27f255d3edf3634b0e686c99710e",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/hair_normals.png",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 4660251,
+      "duplicate_of": "",
+      "format": "png",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "ccdda1cf8836b982b6fa6d7271cd91e0e1f8b68944425a5c58cbdea67c989855",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/haircard_albedo.png",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 626,
+      "duplicate_of": "",
+      "format": "tres",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "a266510e2eb37844518788336a2c500b42720d0d62d39b562e15e43d7cc57ad2",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/lashes.tres",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 752400,
+      "duplicate_of": "",
+      "format": "glb",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "be01fe3cd8d421df3990381c5fd0a23f600881cf043df0adf332dbbbcc611bc9",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/mannyquin.glb",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 4484785,
+      "duplicate_of": "",
+      "format": "png",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "2a6de0dd1c039eae3520e4e13701baca80df49614761caed57207e64d943b64e",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/masculine_albedo.png",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 6478581,
+      "duplicate_of": "",
+      "format": "png",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "0feb7a8d715d34b182e097932d123e6af64ea3b7d542d4b60f47fcdc22562c70",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/masculine_normals.png",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 564,
+      "duplicate_of": "",
+      "format": "tres",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "f143eb90eb761b5a2a9401207d6a3f516cdfc47dcaab1d54ff4c814428b580b3",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/skin_f.tres",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 626,
+      "duplicate_of": "",
+      "format": "tres",
+      "license": "Unlicense/CC0",
+      "migration_status": "candidate_reimport",
+      "sha256": "ed6558688692e9fd47c40d784f628785593d124d1c70d86b8483a64b25bb277a",
+      "source": "Cat's Godot 4 Souls-Like Template & Asset Pack",
+      "source_path": "assets/characters/skin_m.tres",
+      "unreal_destination": "Content/KashmirAct/SourceAssets/CatSouls"
+    },
+    {
+      "bytes": 1750032,
+      "duplicate_of": "",
+      "format": "fbx",
+      "license": "UNVERIFIED",
+      "migration_status": "blocked_pending_license",
+      "sha256": "158a66eb42cac5a9ea0c16f741cd7403f327d6e66d367504c7b8636b113fd2df",
+      "source": "User supplied X Bot / Mixamo provenance pending",
+      "source_path": "assets/characters/x_bot.fbx",
+      "unreal_destination": ""
+    },
+    {
+      "bytes": 734,
+      "duplicate_of": "",
+      "format": "tres",
+      "license": "UNVERIFIED",
+      "migration_status": "review_required",
+      "sha256": "6257aa73c00f4066ac3fd9abd590214302a94b8c8d0561ae37b45bbf35dbb95c",
+      "source": "KashmirAct local/prototype asset",
+      "source_path": "assets/metal_black.tres",
+      "unreal_destination": ""
+    },
+    {
+      "bytes": 369,
+      "duplicate_of": "",
+      "format": "md",
+      "license": "UNVERIFIED",
+      "migration_status": "review_required",
+      "sha256": "450dc6277daf6855cabac2bd5d878615f5179c3ec5e732802570bd709abe1304",
+      "source": "KashmirAct local/prototype asset",
+      "source_path": "assets/README.md",
+      "unreal_destination": ""
+    },
+    {
+      "bytes": 2227,
+      "duplicate_of": "",
+      "format": "md",
+      "license": "UNVERIFIED",
+      "migration_status": "review_required",
+      "sha256": "aad13bdd8d81c26dd2a4164fec0395fb2db4d7fb6688cfef5d9ffb381db501a8",
+      "source": "KashmirAct local/prototype asset",
+      "source_path": "assets/THIRD_PARTY_ASSETS.md",
+      "unreal_destination": ""
+    },
+    {
+      "bytes": 1750032,
+      "duplicate_of": "assets/characters/x_bot.fbx",
+      "format": "fbx",
+      "license": "UNVERIFIED",
+      "migration_status": "duplicate_do_not_import",
+      "sha256": "158a66eb42cac5a9ea0c16f741cd7403f327d6e66d367504c7b8636b113fd2df",
+      "source": "User supplied X Bot / Mixamo provenance pending",
+      "source_path": "assets/X Bot.fbx",
+      "unreal_destination": ""
+    },
+    {
+      "bytes": 1750032,
+      "duplicate_of": "assets/characters/x_bot.fbx",
+      "format": "fbx",
+      "license": "UNVERIFIED",
+      "migration_status": "duplicate_do_not_import",
+      "sha256": "158a66eb42cac5a9ea0c16f741cd7403f327d6e66d367504c7b8636b113fd2df",
+      "source": "User supplied X Bot / Mixamo provenance pending",
+      "source_path": "data/rules/X Bot.fbx",
+      "unreal_destination": ""
+    }
+  ],
+  "manifest_schema_version": "1.0.0",
+  "policy": "No entry may enter Unreal Content until migration_status is candidate_reimport and license is verified.",
+  "source_repository": "KashmirAct"
+}

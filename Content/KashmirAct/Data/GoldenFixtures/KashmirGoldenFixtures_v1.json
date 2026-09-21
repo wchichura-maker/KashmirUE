@@ -1,0 +1,245 @@
+{
+  "fixtures": [
+    {
+      "expected": {
+        "accepted": true,
+        "active": [
+          0.2,
+          0.44
+        ],
+        "cost": 14,
+        "duration": 0.7,
+        "resource": "Resource.Stamina"
+      },
+      "family": "action",
+      "id": "action.request.cut_down",
+      "input": {
+        "action_id": "cut_down",
+        "direction": [
+          0.0,
+          -1.0
+        ],
+        "intensity": 1.0
+      }
+    },
+    {
+      "expected": {
+        "accepted": false,
+        "reason": "intensity cannot be negative"
+      },
+      "family": "action",
+      "id": "action.request.invalid_intensity",
+      "input": {
+        "action_id": "cut_down",
+        "direction": [
+          0.0,
+          -1.0
+        ],
+        "intensity": -0.01
+      }
+    },
+    {
+      "expected": {
+        "after": 6.0,
+        "paid": true
+      },
+      "family": "resource",
+      "id": "resource.stamina.atomic_payment",
+      "input": {
+        "before": 20.0,
+        "costs": [
+          14.0
+        ]
+      }
+    },
+    {
+      "expected": {
+        "after": 10.0,
+        "paid": false,
+        "reason": "insufficient resource"
+      },
+      "family": "resource",
+      "id": "resource.stamina.insufficient",
+      "input": {
+        "before": 10.0,
+        "costs": [
+          14.0
+        ]
+      }
+    },
+    {
+      "expected": {
+        "after": 20.0,
+        "paid": true
+      },
+      "family": "resource",
+      "id": "resource.mana.atomic_payment",
+      "input": {
+        "before": 30.0,
+        "costs": [
+          10.0
+        ],
+        "resource": "Resource.Mana"
+      }
+    },
+    {
+      "expected": {
+        "cost": 14.0,
+        "phases": [
+          "startup",
+          "active",
+          "complete"
+        ],
+        "resource": "Resource.Stamina"
+      },
+      "family": "runtime",
+      "id": "runtime.timeline.cut_down",
+      "input": {
+        "action_id": "cut_down",
+        "active": 0.24,
+        "advances": [
+          0.1,
+          0.2,
+          0.44
+        ],
+        "recovery": 0.26,
+        "startup": 0.2
+      }
+    },
+    {
+      "expected": {
+        "cancelled": true,
+        "remaining_stamina": 8.0,
+        "source_cost_refunded": false
+      },
+      "family": "runtime",
+      "id": "runtime.cancel.commitment_cost",
+      "input": {
+        "cancel_at": 0.1,
+        "initial_stamina": 40.0,
+        "next_action": "dodge",
+        "next_cost": 18.0,
+        "source_action": "cut_down",
+        "source_cost": 14.0
+      }
+    },
+    {
+      "expected": {
+        "available_at": 0.1,
+        "unavailable_after": 0.2,
+        "unavailable_when_blocked": true
+      },
+      "family": "runtime",
+      "id": "transition.tagged_window",
+      "input": {
+        "blocked_tag": "State.Disabled",
+        "from": "cut_down",
+        "max_elapsed": 0.2,
+        "min_elapsed": 0.1,
+        "required_tag": "Action.Transition",
+        "to": "lunge"
+      }
+    },
+    {
+      "expected": {
+        "allowed": true,
+        "cost": 10.0,
+        "resource_attribute": "attribute_stamina_001"
+      },
+      "family": "equipment",
+      "id": "weapon.sword.action_binding",
+      "input": {
+        "action_id": "attack_sword_swing_001",
+        "weapon_id": "weapon_sword_001"
+      }
+    },
+    {
+      "expected": {
+        "damage_multiplier": 1.0,
+        "duplicate": false,
+        "hit": true,
+        "missed": false
+      },
+      "family": "hit_defense",
+      "id": "hit.contact.unprotected",
+      "input": {
+        "contact_detected": true,
+        "defense": "none",
+        "event_id": "evt_contact_001"
+      }
+    },
+    {
+      "expected": {
+        "damage_multiplier": 0.0,
+        "dodged": true,
+        "hit": false,
+        "missed": true
+      },
+      "family": "hit_defense",
+      "id": "hit.contact.dodge",
+      "input": {
+        "contact_detected": true,
+        "defense": "dodged",
+        "event_id": "evt_dodge_001"
+      }
+    },
+    {
+      "expected": {
+        "duplicate": true,
+        "hit": false,
+        "missed": true,
+        "reason": "duplicate hit evidence"
+      },
+      "family": "hit_defense",
+      "id": "hit.contact.duplicate",
+      "input": {
+        "contact_detected": true,
+        "event_id": "evt_contact_001",
+        "repeat": true
+      }
+    },
+    {
+      "expected": {
+        "effect_id": "shatter",
+        "fired": [
+          "impact_frozen"
+        ],
+        "produces": [
+          "target.shattered"
+        ],
+        "remaining_budget": 0.5
+      },
+      "family": "interaction",
+      "id": "interaction.impact_frozen",
+      "input": {
+        "budget": 1.0,
+        "facts": [
+          "source.impact",
+          "target.frozen"
+        ]
+      }
+    },
+    {
+      "expected": {
+        "mutates_gameplay": false,
+        "ordered": true,
+        "schema_version": "0.1"
+      },
+      "family": "telemetry",
+      "id": "telemetry.observation_only",
+      "input": {
+        "event_id": "event_001",
+        "event_type": "HIT",
+        "session_id": "session_001"
+      }
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_schemas": {
+    "interactions": "1.0",
+    "melee_lab": "1.0",
+    "telemetry": "0.1",
+    "weapon_actions": "0.1",
+    "weapons": "0.1"
+  }
+}

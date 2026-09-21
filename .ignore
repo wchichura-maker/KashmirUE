@@ -1,0 +1,10 @@
+/.git
+/.vs
+/.vscode
+/Content
+/DerivedDataCache
+/Docs
+/Intermediate
+/Saved
+/Scripts
+/tools
