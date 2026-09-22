@@ -9,6 +9,7 @@ class UInputAction;
 class UInputMappingContext;
 class UKashmirMovementConfig;
 class USpringArmComponent;
+class UKashmirLockOnTargetComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -20,11 +21,14 @@ public:
     AKashmirCharacter();
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+    virtual void Tick(float DeltaSeconds) override;
+
 protected:
     virtual void BeginPlay() override;
 
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
+    void TurnCharacter(const FInputActionValue& Value);
 
     void BeginMouseTurnCharacter();
     void EndMouseTurnCharacter();
@@ -32,13 +36,34 @@ protected:
     void RequestDodge();
     void ToggleLockOn();
 
+    UKashmirLockOnTargetComponent* FindBestLockOnTarget() const;
+    void ClearLockOnTarget();
+
     void ApplyMovementConfig();
+    
+    void RecenterCameraToCharacter();
+
+    void HandleMoveCompleted(const FInputActionValue& Value);
+
+    bool bMovementStoppedSinceLastInput = true;
+    bool bCameraRecentering = false;
 
     UFUNCTION(BlueprintPure, Category="Movement|Config")
     float GetConfiguredWalkSpeed() const;
 
     UFUNCTION(BlueprintPure, Category="Movement|Config")
     float GetConfiguredSprintSpeed() const;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn",
+        meta=(ClampMin="0.0"))
+    float LockOnMaxDistance = 2000.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn",
+        meta=(ClampMin="-1.0", ClampMax="1.0"))
+    float LockOnMinCameraDot = 0.35f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="LockOn")
+    TObjectPtr<AActor> CurrentLockOnTarget;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
     TObjectPtr<USpringArmComponent> CameraBoom;
@@ -56,6 +81,9 @@ protected:
     TObjectPtr<UInputAction> LookAction;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    TObjectPtr<UInputAction> TurnCharacterAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> DodgeAction;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
@@ -66,6 +94,10 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Config")
     TObjectPtr<UKashmirMovementConfig> MovementConfig;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Camera|Recenter",
+        meta=(ClampMin="0.1"))
+    float CameraRecenterSpeed = 3.0f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Intent")
     bool bDodgeRequested = false;

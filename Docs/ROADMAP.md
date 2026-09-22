@@ -30,16 +30,28 @@ validação consolidada ao final. Não há commit ou push automático.
 ### UE1.1 — Personagem canônico — EM ANDAMENTO
 
 - `ACharacter`, Character Movement e Enhanced Input.
-- Câmera third-person independente do facing, com zoom, collision avoidance e
-  suavização.
-- Controle de exploração inspirado em MMO: forward/backpedal/strafe relativos
-  ao facing do personagem; câmera livre; RMB alinha corpo e câmera.
-- Movimento diagonal normalizado e velocidades parametrizadas.
-- Sprint condicionado à componente frontal do movimento.
-- Consolidar configuração data-driven de locomoção.
-- Implementar lock-on.
-- Implementar esquiva em oito direções.
-- Executar validação consolidada do UE1.1.
+- Câmera third-person independente do facing.
+- Controle de exploração inspirado em MMO/WoW:
+  - `W/S` forward/backpedal;
+  - `A/D` turn;
+  - `Q/E` strafe;
+  - LMB free-look;
+  - RMB câmera + facing;
+  - LMB + RMB forward relativo à câmera.
+- Free-look com offset persistente e recenter contextual após parada + novo
+  movimento frontal.
+- Velocidade de recenter separada de Camera Rotation Lag.
+- Zoom suave, collision avoidance e camera lag.
+- Movimento diagonal normalizado.
+- Configuração data-driven de velocidade e dinâmica.
+- Sprint condicionado à componente frontal.
+- Aquisição básica de alvo de lock-on implementada e validada.
+- Pendente:
+  - comportamento corporal durante lock-on;
+  - movimento durante lock-on;
+  - câmera de lock-on;
+  - esquiva em oito direções;
+  - validação consolidada do UE1.1.
 
 ### UE1.2 — Pipeline de animação
 
@@ -108,7 +120,11 @@ Estado validado:
 - zoom suave;
 - camera collision;
 - camera lag.
-
+- aquisição de alvo para lock-on por componente genérico;
+- filtro por distância e alinhamento de câmera;
+- prioridade de alvo;
+- toggle de lock/unlock validado;
+- free-look e recenter contextual validados.
 Próximos trabalhos do UE1.1:
 
 1. consolidar os parâmetros de locomoção em configuração data-driven;
@@ -116,3 +132,4 @@ Próximos trabalhos do UE1.1:
 3. implementar dodge em oito direções;
 4. executar validação consolidada do UE1.1;
 5. avançar para UE1.2 somente após aprovação.
+

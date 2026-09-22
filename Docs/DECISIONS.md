@@ -36,33 +36,71 @@
 
 - **Status:** confirmada.
 - **Escopo:** UE1.1 — personagem canônico.
-- A direção da câmera, a direção do corpo e a direção de movimento são conceitos independentes.
-- O modo padrão de exploração segue controle inspirado em MMO/WoW:
-  - `W` move para a frente relativa ao facing atual do personagem;
-  - `S` executa backpedal sem inverter o facing;
-  - `A/D` executam strafe lateral sem girar automaticamente o corpo;
-  - orbitar a câmera não altera o facing por si só.
-- Segurar RMB permite que o Yaw do corpo acompanhe o Yaw da câmera.
-- Soltar RMB devolve independência entre câmera e facing.
-- LMB mantém órbita livre da câmera.
-- LMB + RMB solicita movimento contínuo para a frente.
-- A câmera third-person é centralizada no modo normal; câmera sobre o ombro pode existir futuramente como estado contextual de câmera, não como regra global.
-- O `CharacterMovement` não deve orientar automaticamente o personagem para a direção do movimento no modo padrão.
+- Câmera, facing corporal e direção de movimento são conceitos independentes.
+- O modo padrão de exploração segue controle inspirado em World of Warcraft/MMO clássico.
+
+### Movimento
+
+- `W`: movimento para frente relativo ao facing atual do personagem.
+- `S`: backpedal relativo ao facing atual.
+- `A/D`: giram o personagem para esquerda/direita.
+- `A/D` também deslocam a orientação da câmera pelo mesmo delta de Yaw,
+  preservando qualquer offset angular atual entre câmera e personagem.
+- `Q/E`: strafe lateral sem alterar o facing.
+- Movimento diagonal tem magnitude limitada para impedir bônus de velocidade.
+
+### Controle da câmera por mouse
+
+- Mouse sem botão pressionado não orbita a câmera.
+- LMB + arrastar:
+  - gira somente a câmera;
+  - não altera o facing do personagem;
+  - cria free-look temporário.
+- RMB + arrastar:
+  - gira a câmera;
+  - o personagem acompanha o Yaw da câmera.
+- LMB + RMB:
+  - personagem caminha para frente;
+  - direção horizontal de movimento é derivada da direção da câmera.
+
+### Retorno da câmera
+
+- Soltar LMB não recentraliza imediatamente a câmera.
+- Continuar o movimento após free-look não força recentralização.
+- `A/D` durante esse estado giram personagem e câmera juntos, preservando o
+  offset relativo atual.
+- O recenter automático só pode iniciar após:
+  1. o jogador encerrar completamente o movimento;
+  2. iniciar novamente movimento frontal positivo.
+- `S`, `Q` ou `E` após a parada não iniciam recenter.
+- LMB ou RMB durante o recenter cancelam imediatamente o retorno automático.
+- A velocidade de recenter é independente da responsividade normal da câmera.
+
+### Orientação automática
+
+- `CharacterMovement` não usa `Orient Rotation to Movement` no modo padrão.
+- A direção corporal não deve ser inferida automaticamente da velocidade.
 
 ## UE-0006 — Política de câmera UE1.1
 
 - **Status:** confirmada.
-- A câmera usa Spring Arm e permanece independente do facing quando RMB não está ativo.
+- A câmera third-person usa Spring Arm e é independente do facing quando o
+  jogador utiliza free-look.
 - Deve oferecer:
   - rotação horizontal e vertical;
   - zoom por roda do mouse;
-  - distância mínima e máxima configuráveis;
-  - interpolação suave de distância;
-  - collision test contra geometria;
+  - distância configurável;
+  - interpolação suave de zoom;
+  - collision test;
   - Camera Lag;
-  - Camera Rotation Lag.
-- A câmera não deve mudar de ombro como efeito colateral da rotação do corpo.
-- Estados futuros, como lock-on, mira ou combate específico, podem alterar a política de câmera sem substituir a câmera-base.
+  - Camera Rotation Lag;
+  - recenter automático opcional e independente.
+
+- `CameraRotationLagSpeed` controla a resposta/suavização normal da câmera.
+- `CameraRecenterSpeed` controla exclusivamente o retorno automático da câmera.
+- Esses parâmetros não devem ser tratados como a mesma coisa.
+- Estados futuros como lock-on, mira e modos de combate podem aplicar políticas
+  próprias sem destruir o comportamento-base de exploração.
 
 ## UE-0007 — Política de velocidade e direção
 
