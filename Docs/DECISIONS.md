@@ -122,3 +122,69 @@
   - terreno;
   - estados contextuais.
 - Os consumidores de movimento devem utilizar a velocidade efetiva resolvida, evitando condicionais específicas de conteúdo espalhadas pelo Character.
+
+## UE-0008 — Hierarquia e locomoção de Lock-On
+
+- **Status:** confirmada.
+- Lock-On é um estado de controle, não um bloqueio global de inputs.
+- A câmera acompanha continuamente o target enquanto o Lock-On permanece válido.
+- O corpo tende a orientar-se para o target.
+- A locomoção durante Lock-On usa uma base relativa ao alvo:
+  - `W`: aproxima.
+  - `S`: afasta.
+  - `Q`: órbita para esquerda.
+  - `E`: órbita para direita.
+- A órbita utiliza correção radial para preservar aproximadamente a distância atual do alvo.
+- Alterações voluntárias de distância por `W/S` redefinem o raio orbital de referência.
+- `A/D` representam intenção explícita de abandonar o estado de Lock-On:
+  - o Lock-On é encerrado imediatamente;
+  - a mesma entrada continua sendo processada;
+  - o personagem passa diretamente ao giro normal de exploração.
+- O sistema deve priorizar intenção manual do jogador sobre assistências automáticas.
+
+## UE-0009 — Seleção e ciclo de alvos no Lock-On
+
+- **Status:** confirmada.
+- `Tab` é a única ação primária de Lock-On.
+- Sem alvo atual:
+  - seleciona o alvo válido mais próximo.
+- Com Lock-On ativo:
+  - percorre ciclicamente todos os alvos válidos dentro de `LockOnAcquireDistance`.
+- A lista de candidatos é reconstruída dinamicamente a cada acionamento.
+- Apenas entram no ciclo alvos que:
+  - possuem `KashmirLockOnTargetComponent`;
+  - aceitam Lock-On;
+  - estão dentro da distância de aquisição;
+  - possuem linha de visão válida.
+- A ordem atual é determinística por distância:
+  - mais próximo → mais distante.
+- O ciclo possui wrap-around:
+  - último alvo → primeiro alvo.
+- `A/D` continuam sendo intenção explícita de sair do Lock-On.
+
+## UE-0010 — Dodge direcional
+
+- **Status:** confirmada.
+- O dodge usa uma direção determinada no instante em que é iniciado.
+- Durante o dodge, a trajetória não é alterada por novos inputs de movimento ou giro.
+- O sistema suporta oito direções:
+  - frente;
+  - trás;
+  - esquerda;
+  - direita;
+  - quatro diagonais.
+- Sem Lock-On:
+  - a base direcional é o facing do personagem;
+  - sem input direcional, o fallback é para frente.
+- Com Lock-On:
+  - a base direcional é relativa ao target;
+  - `W` aproxima;
+  - `S` afasta;
+  - `Q/E` deslocam lateralmente em relação ao alvo;
+  - diagonais combinam os eixos;
+  - sem input direcional, o fallback é dodge para trás, afastando-se do alvo.
+- O Lock-On permanece ativo durante o dodge.
+- A/D não cancelam Lock-On enquanto o dodge está ativo.
+- Velocidade e duração são data-driven por `UKashmirMovementConfig`.
+- A implementação atual usa `CharacterMovement` e velocidade controlada.
+- Animation Montage, Root Motion, i-frames e recovery pertencem à evolução posterior do sistema.

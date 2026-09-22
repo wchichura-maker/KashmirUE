@@ -52,6 +52,28 @@ validação consolidada ao final. Não há commit ou push automático.
   - câmera de lock-on;
   - esquiva em oito direções;
   - validação consolidada do UE1.1.
+- [x] ACharacter + Character Movement.
+- [x] Enhanced Input.
+- [x] W/S forward/backpedal.
+- [x] A/D turn.
+- [x] Q/E strafe.
+- [x] LMB free-look.
+- [x] RMB câmera + facing.
+- [x] LMB + RMB movimento frontal pela câmera.
+- [x] Recenter contextual pelo menor arco.
+- [x] Movimento data-driven.
+- [x] Sprint frontal.
+- [x] Lock-On por proximidade.
+- [x] câmera acompanhando target.
+- [x] facing corporal de Lock-On.
+- [x] movimento relativo ao target.
+- [x] órbita com correção radial.
+- [x] distância de aquisição/quebra.
+- [x] linha de visão com grace time.
+- [x] ciclo de targets por Tab.
+- [x] saída de Lock-On por A/D.
+- [x] dodge em oito direções.
+- [x] Integração validada entre exploração, Lock-On e dodge.
 
 ### UE1.2 — Pipeline de animação
 
@@ -105,31 +127,17 @@ validação consolidada ao final. Não há commit ou push automático.
 
 UE0.1, UE0.2 e UE0.3 estão concluídos e possuem validação consolidada.
 
-O desenvolvimento está atualmente em **UE1.1 — Personagem canônico**.
+### UE1.1 — Personagem canônico — CONCLUÍDO
 
-Estado validado:
-
-- `ACharacter` e GameMode funcionais;
-- Enhanced Input funcional;
-- câmera third-person;
-- câmera e character facing independentes;
-- controle de facing por RMB;
-- movimento forward/backpedal/strafe;
-- normalização de movimento diagonal;
-- sprint frontal;
-- zoom suave;
-- camera collision;
-- camera lag.
-- aquisição de alvo para lock-on por componente genérico;
-- filtro por distância e alinhamento de câmera;
-- prioridade de alvo;
-- toggle de lock/unlock validado;
-- free-look e recenter contextual validados.
-Próximos trabalhos do UE1.1:
-
-1. consolidar os parâmetros de locomoção em configuração data-driven;
-2. implementar lock-on;
-3. implementar dodge em oito direções;
-4. executar validação consolidada do UE1.1;
-5. avançar para UE1.2 somente após aprovação.
+- [x] ACharacter + Character Movement.
+- [x] Enhanced Input.
+- [x] Política completa de exploração.
+- [x] Free-look e recenter contextual.
+- [x] Sprint frontal.
+- [x] Lock-On com aquisição, ciclo, distância e LOS.
+- [x] Facing e câmera orientados ao target.
+- [x] Movimento target-relative e órbita.
+- [x] Saída de Lock-On por A/D.
+- [x] Dodge em oito direções.
+- [x] Integração validada entre exploração, Lock-On e dodge.
 

@@ -58,4 +58,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Rotation",
         meta=(ClampMin="0.0"))
     float RotationRateYaw = 540.0f;
-};
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dodge",
+        meta=(ClampMin="0.0"))
+    float DodgeSpeed = 950.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dodge",
+        meta=(ClampMin="0.01"))
+    float DodgeDuration = 0.22f;
+    };

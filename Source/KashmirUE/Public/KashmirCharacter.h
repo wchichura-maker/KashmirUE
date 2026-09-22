@@ -35,8 +35,12 @@ protected:
 
     void RequestDodge();
     void ToggleLockOn();
+    void UpdateLockOn(float DeltaSeconds);
+    void HandleTurnCompleted(const FInputActionValue& Value);
 
-    UKashmirLockOnTargetComponent* FindBestLockOnTarget() const;
+    TArray<UKashmirLockOnTargetComponent*> FindValidLockOnTargets() const;
+
+    UKashmirLockOnTargetComponent* FindNextLockOnTarget() const;
     void ClearLockOnTarget();
 
     void ApplyMovementConfig();
@@ -45,8 +49,19 @@ protected:
 
     void HandleMoveCompleted(const FInputActionValue& Value);
 
+    void UpdateDodge(float DeltaSeconds);
+    FVector CalculateDodgeDirection() const;
+
     bool bMovementStoppedSinceLastInput = true;
     bool bCameraRecentering = false;
+    
+    FVector2D LastMoveInput2D = FVector2D::ZeroVector;
+
+    bool bIsDodging = false;
+
+    FVector ActiveDodgeDirection = FVector::ZeroVector;
+
+    float DodgeTimeRemaining = 0.0f;
 
     UFUNCTION(BlueprintPure, Category="Movement|Config")
     float GetConfiguredWalkSpeed() const;
@@ -54,13 +69,19 @@ protected:
     UFUNCTION(BlueprintPure, Category="Movement|Config")
     float GetConfiguredSprintSpeed() const;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn",
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|Distance",
         meta=(ClampMin="0.0"))
-    float LockOnMaxDistance = 2000.0f;
+    float LockOnAcquireDistance = 2000.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|Distance",
+        meta=(ClampMin="0.0"))
+    float LockOnBreakDistance = 2400.0f;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn",
         meta=(ClampMin="-1.0", ClampMax="1.0"))
     float LockOnMinCameraDot = 0.35f;
+    float LockOnOrbitRadius = 0.0f;
+    float LockOnLostSightTime = 0.0f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="LockOn")
     TObjectPtr<AActor> CurrentLockOnTarget;
@@ -106,4 +127,29 @@ protected:
     bool bLockOnRequested = false;
 
     bool bMouseTurnCharacter = false;
+
+    bool bManualTurnActive = false;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|Rotation",
+        meta=(ClampMin="0.1"))
+    float LockOnBodyRotationSpeed = 10.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|Rotation",
+        meta=(ClampMin="0.1"))
+    float LockOnCameraRotationSpeed = 8.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|Movement",
+        meta=(ClampMin="1.0"))
+    float LockOnOrbitCorrectionRange = 100.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|Movement",
+        meta=(ClampMin="0.0", ClampMax="1.0"))
+    float LockOnOrbitMaxCorrection = 0.35f;
+
+    bool HasLineOfSightToLockOnTarget(
+        const UKashmirLockOnTargetComponent* TargetComponent) const;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|LineOfSight",
+        meta=(ClampMin="0.0"))
+    float LockOnLineOfSightGraceTime = 0.75f;
 };
