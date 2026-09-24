@@ -12,6 +12,7 @@
 #include "KashmirLockOnTargetComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
+#include "Traversal/KashmirTraversalComponent.h"
 
 AKashmirCharacter::AKashmirCharacter()
 {
@@ -42,6 +43,8 @@ AKashmirCharacter::AKashmirCharacter()
     CameraBoom->CameraRotationLagSpeed = 15.0f;
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); FollowCamera->bUsePawnControlRotation = false;
+    TraversalComponent = CreateDefaultSubobject<UKashmirTraversalComponent>(
+        TEXT("TraversalComponent"));
 }
 void AKashmirCharacter::BeginPlay()
 {
@@ -366,7 +369,27 @@ void AKashmirCharacter::StopTraversalOrJump()
 
 bool AKashmirCharacter::TryStartTraversal()
 {
-    // Jump Pass 01 intentionally has no traversal resolver yet.
+    if (TraversalComponent == nullptr)
+    {
+        return false;
+    }
+
+    const FTraversalQueryResult Result = TraversalComponent->QueryTraversal();
+    if (!Result.bIsValid)
+    {
+        return false;
+    }
+
+    UE_LOG(
+        LogTemp,
+        Verbose,
+        TEXT("Traversal detected: Type=%d Height=%.1f Depth=%.1f. Execution is pending; using Jump fallback."),
+        static_cast<uint8>(Result.Type),
+        Result.ObstacleHeight,
+        Result.ObstacleDepth);
+
+    // Detection is read-only in Traversal Pass 01. Returning false deliberately
+    // preserves the native Jump fallback until traversal execution exists.
     return false;
 }
 

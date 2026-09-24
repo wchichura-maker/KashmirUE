@@ -8,6 +8,7 @@ class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 class UKashmirMovementConfig;
+class UKashmirTraversalComponent;
 class USpringArmComponent;
 class UKashmirLockOnTargetComponent;
 struct FInputActionValue;
@@ -38,6 +39,16 @@ public:
     UFUNCTION(BlueprintPure, Category="Animation")
     bool IsWalking() const { return bWalkRequested; }
 
+    UFUNCTION(BlueprintPure, Category="Traversal")
+    UKashmirTraversalComponent* GetTraversalComponent() const
+    { return TraversalComponent; }
+
+    UFUNCTION(BlueprintCallable, Category="Traversal")
+    void RequestTraversalOrJump();
+
+    UFUNCTION(BlueprintCallable, Category="Traversal")
+    void StopTraversalOrJump();
+
 protected:
     virtual void BeginPlay() override;
 
@@ -47,8 +58,6 @@ protected:
     void BeginWalk();
     void EndWalk();
     void RefreshMovementSpeed();
-    void RequestTraversalOrJump();
-    void StopTraversalOrJump();
     bool TryStartTraversal();
 
     void BeginMouseTurnCharacter();
@@ -115,6 +124,9 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
     TObjectPtr<UCameraComponent> FollowCamera;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Traversal")
+    TObjectPtr<UKashmirTraversalComponent> TraversalComponent;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputMappingContext> PlayerMappingContext;
