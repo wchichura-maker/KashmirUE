@@ -59,6 +59,21 @@ public:
         meta=(ClampMin="0.0"))
     float RotationRateYaw = 540.0f;
 
+    /** Native CharacterMovement upward velocity used by the jump fallback. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump",
+        meta=(ClampMin="0.0"))
+    float JumpZVelocity = 420.0f;
+
+    /** Native CharacterMovement lateral control while falling. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump",
+        meta=(ClampMin="0.0", ClampMax="1.0"))
+    float AirControl = 0.05f;
+
+    /** Native CharacterMovement gravity multiplier for jump and falling. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump",
+        meta=(ClampMin="0.0"))
+    float GravityScale = 1.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dodge",
         meta=(ClampMin="0.0"))
     float DodgeSpeed = 950.0f;

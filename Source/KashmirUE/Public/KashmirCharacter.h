@@ -47,6 +47,9 @@ protected:
     void BeginWalk();
     void EndWalk();
     void RefreshMovementSpeed();
+    void RequestTraversalOrJump();
+    void StopTraversalOrJump();
+    bool TryStartTraversal();
 
     void BeginMouseTurnCharacter();
     void EndMouseTurnCharacter();
@@ -118,6 +121,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> WalkAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    TObjectPtr<UInputAction> TraversalOrJumpAction;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> MoveAction;

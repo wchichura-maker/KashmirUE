@@ -133,6 +133,30 @@ if (WalkAction)
     );
 }
 
+    if (TraversalOrJumpAction)
+    {
+        Input->BindAction(
+            TraversalOrJumpAction,
+            ETriggerEvent::Started,
+            this,
+            &AKashmirCharacter::RequestTraversalOrJump
+        );
+
+        Input->BindAction(
+            TraversalOrJumpAction,
+            ETriggerEvent::Completed,
+            this,
+            &AKashmirCharacter::StopTraversalOrJump
+        );
+
+        Input->BindAction(
+            TraversalOrJumpAction,
+            ETriggerEvent::Canceled,
+            this,
+            &AKashmirCharacter::StopTraversalOrJump
+        );
+    }
+
     if (DodgeAction) Input->BindAction(DodgeAction, ETriggerEvent::Started, this, &AKashmirCharacter::RequestDodge);
     if (LockOnAction) Input->BindAction(LockOnAction, ETriggerEvent::Started, this, &AKashmirCharacter::ToggleLockOn);
     if (MouseTurnCharacterAction)
@@ -310,6 +334,42 @@ void AKashmirCharacter::EndWalk()
     RefreshMovementSpeed();
 }
 
+void AKashmirCharacter::RequestTraversalOrJump()
+{
+    if (bIsDodging)
+    {
+        return;
+    }
+
+    if (TryStartTraversal())
+    {
+        return;
+    }
+
+    UCharacterMovementComponent* Movement =
+        GetCharacterMovement();
+
+    if (Movement == nullptr ||
+        !Movement->IsMovingOnGround() ||
+        !CanJump())
+    {
+        return;
+    }
+
+    Jump();
+}
+
+void AKashmirCharacter::StopTraversalOrJump()
+{
+    StopJumping();
+}
+
+bool AKashmirCharacter::TryStartTraversal()
+{
+    // Jump Pass 01 intentionally has no traversal resolver yet.
+    return false;
+}
+
 void AKashmirCharacter::RefreshMovementSpeed()
 {
     UCharacterMovementComponent* Movement =
@@ -368,6 +428,9 @@ void AKashmirCharacter::ApplyMovementConfig()
     Movement->GroundFriction = MovementConfig->GroundFriction;
     Movement->RotationRate =
         FRotator(0.0f, MovementConfig->RotationRateYaw, 0.0f);
+    Movement->JumpZVelocity = MovementConfig->JumpZVelocity;
+    Movement->AirControl = MovementConfig->AirControl;
+    Movement->GravityScale = MovementConfig->GravityScale;
 }
 
 float AKashmirCharacter::GetConfiguredWalkSpeed() const
@@ -590,7 +653,12 @@ void AKashmirCharacter::Look(const FInputActionValue& Value)
 }
 void AKashmirCharacter::RequestDodge()
 {
-    if (bIsDodging)
+    const UCharacterMovementComponent* Movement =
+        GetCharacterMovement();
+
+    if (bIsDodging ||
+        Movement == nullptr ||
+        Movement->IsFalling())
     {
         return;
     }
