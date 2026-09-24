@@ -12,7 +12,9 @@ public class KashmirUE : ModuleRules
         });
         PrivateDependencyModuleNames.AddRange(new string[]
         {
-            "AIModule", "JsonUtilities"
+            "AIModule",
+            "JsonUtilities",
+            "AnimGraphRuntime"
         });
     }
 }

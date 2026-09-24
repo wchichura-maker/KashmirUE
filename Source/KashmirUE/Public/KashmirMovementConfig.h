@@ -19,15 +19,15 @@ class KASHMIRUE_API UKashmirMovementConfig : public UDataAsset
 
 public:
 
-    /** Canonical forward movement speed. */
+    /** Default locomotion speed. Jog is the canonical movement gait. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed",
         meta=(ClampMin="0.0"))
-    float WalkSpeed = 450.0f;
+    float JogSpeed = 525.0f;
 
-    /** Speed while sprint is successfully resolved. */
+    /** Reduced movement speed while Walk is requested. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed",
         meta=(ClampMin="0.0"))
-    float SprintSpeed = 650.0f;
+    float WalkSpeed = 275.0f;
 
     /** Lateral movement multiplier relative to forward movement. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Direction",

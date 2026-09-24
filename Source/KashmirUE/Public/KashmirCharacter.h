@@ -23,15 +23,36 @@ public:
 
     virtual void Tick(float DeltaSeconds) override;
 
+    UFUNCTION(BlueprintPure, Category="Animation")
+    bool IsLockOnActive() const
+    {
+        return IsValid(CurrentLockOnTarget);
+    }
+
+    UFUNCTION(BlueprintPure, Category="Animation")
+    bool IsDodging() const
+    {
+        return bIsDodging;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Animation")
+    bool IsWalking() const { return bWalkRequested; }
+
 protected:
     virtual void BeginPlay() override;
 
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
     void TurnCharacter(const FInputActionValue& Value);
+    void BeginWalk();
+    void EndWalk();
+    void RefreshMovementSpeed();
 
     void BeginMouseTurnCharacter();
     void EndMouseTurnCharacter();
+    void BeginLeftMouseCamera();
+    void EndLeftMouseCamera();
+    void UpdateMouseForwardMovement();
 
     void RequestDodge();
     void ToggleLockOn();
@@ -59,15 +80,15 @@ protected:
 
     bool bIsDodging = false;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Movement|Gait")
+    bool bWalkRequested = false;
+
     FVector ActiveDodgeDirection = FVector::ZeroVector;
 
     float DodgeTimeRemaining = 0.0f;
 
     UFUNCTION(BlueprintPure, Category="Movement|Config")
     float GetConfiguredWalkSpeed() const;
-
-    UFUNCTION(BlueprintPure, Category="Movement|Config")
-    float GetConfiguredSprintSpeed() const;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LockOn|Distance",
         meta=(ClampMin="0.0"))
@@ -96,6 +117,9 @@ protected:
     TObjectPtr<UInputMappingContext> PlayerMappingContext;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    TObjectPtr<UInputAction> WalkAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> MoveAction;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
@@ -113,6 +137,9 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> MouseTurnCharacterAction;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    TObjectPtr<UInputAction> LeftMouseCameraAction;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Config")
     TObjectPtr<UKashmirMovementConfig> MovementConfig;
 
@@ -127,6 +154,8 @@ protected:
     bool bLockOnRequested = false;
 
     bool bMouseTurnCharacter = false;
+
+    bool bLeftMouseCamera = false;
 
     bool bManualTurnActive = false;
 

@@ -12,7 +12,6 @@
 #include "KashmirLockOnTargetComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
-#include "InputCoreTypes.h"
 
 AKashmirCharacter::AKashmirCharacter()
 {
@@ -110,6 +109,30 @@ void AKashmirCharacter::SetupPlayerInputComponent(UInputComponent* Component)
             &AKashmirCharacter::HandleTurnCompleted
         );
     }
+if (WalkAction)
+{
+    Input->BindAction(
+        WalkAction,
+        ETriggerEvent::Started,
+        this,
+        &AKashmirCharacter::BeginWalk
+    );
+
+    Input->BindAction(
+        WalkAction,
+        ETriggerEvent::Completed,
+        this,
+        &AKashmirCharacter::EndWalk
+    );
+
+    Input->BindAction(
+        WalkAction,
+        ETriggerEvent::Canceled,
+        this,
+        &AKashmirCharacter::EndWalk
+    );
+}
+
     if (DodgeAction) Input->BindAction(DodgeAction, ETriggerEvent::Started, this, &AKashmirCharacter::RequestDodge);
     if (LockOnAction) Input->BindAction(LockOnAction, ETriggerEvent::Started, this, &AKashmirCharacter::ToggleLockOn);
     if (MouseTurnCharacterAction)
@@ -126,6 +149,36 @@ void AKashmirCharacter::SetupPlayerInputComponent(UInputComponent* Component)
             ETriggerEvent::Completed,
             this,
             &AKashmirCharacter::EndMouseTurnCharacter
+        );
+
+        Input->BindAction(
+            MouseTurnCharacterAction,
+            ETriggerEvent::Canceled,
+            this,
+            &AKashmirCharacter::EndMouseTurnCharacter
+        );
+    }
+    if (LeftMouseCameraAction)
+    {
+        Input->BindAction(
+            LeftMouseCameraAction,
+            ETriggerEvent::Started,
+            this,
+            &AKashmirCharacter::BeginLeftMouseCamera
+        );
+
+        Input->BindAction(
+            LeftMouseCameraAction,
+            ETriggerEvent::Completed,
+            this,
+            &AKashmirCharacter::EndLeftMouseCamera
+        );
+
+        Input->BindAction(
+            LeftMouseCameraAction,
+            ETriggerEvent::Canceled,
+            this,
+            &AKashmirCharacter::EndLeftMouseCamera
         );
     }
 }
@@ -231,6 +284,60 @@ void AKashmirCharacter::RecenterCameraToCharacter()
     );
 }
 
+void AKashmirCharacter::BeginWalk()
+{
+    bWalkRequested = true;
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Kashmir: WALK ON")
+    );
+
+    RefreshMovementSpeed();
+}
+
+void AKashmirCharacter::EndWalk()
+{
+    bWalkRequested = false;
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Kashmir: WALK OFF")
+    );
+
+    RefreshMovementSpeed();
+}
+
+void AKashmirCharacter::RefreshMovementSpeed()
+{
+    UCharacterMovementComponent* Movement =
+        GetCharacterMovement();
+
+    if (Movement == nullptr || MovementConfig == nullptr)
+    {
+        return;
+    }
+
+    Movement->MaxWalkSpeed =
+        bWalkRequested
+            ? MovementConfig->WalkSpeed
+            : MovementConfig->JogSpeed;
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT(
+            "Kashmir RefreshSpeed | WalkRequested=%s Jog=%.1f Walk=%.1f MaxWalkSpeed=%.1f"
+        ),
+        bWalkRequested ? TEXT("TRUE") : TEXT("FALSE"),
+        MovementConfig->JogSpeed,
+        MovementConfig->WalkSpeed,
+        Movement->MaxWalkSpeed
+    );
+}
+
 void AKashmirCharacter::ApplyMovementConfig()
 {
     if (MovementConfig == nullptr)
@@ -244,7 +351,17 @@ void AKashmirCharacter::ApplyMovementConfig()
         return;
     }
 
-    Movement->MaxWalkSpeed = MovementConfig->WalkSpeed;
+    Movement->MaxWalkSpeed = MovementConfig->JogSpeed;
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Kashmir ApplyMovementConfig | Jog=%.1f Walk=%.1f MaxWalkSpeed=%.1f"),
+        MovementConfig->JogSpeed,
+        MovementConfig->WalkSpeed,
+        Movement->MaxWalkSpeed
+    );
+
     Movement->MaxAcceleration = MovementConfig->MaxAcceleration;
     Movement->BrakingDecelerationWalking =
         MovementConfig->BrakingDecelerationWalking;
@@ -257,14 +374,7 @@ float AKashmirCharacter::GetConfiguredWalkSpeed() const
 {
     return MovementConfig
         ? MovementConfig->WalkSpeed
-        : 450.0f;
-}
-
-float AKashmirCharacter::GetConfiguredSprintSpeed() const
-{
-    return MovementConfig
-        ? MovementConfig->SprintSpeed
-        : 650.0f;
+        : 275.0f;
 }
 
 void AKashmirCharacter::Move(const FInputActionValue& Value)
@@ -278,27 +388,33 @@ void AKashmirCharacter::Move(const FInputActionValue& Value)
     {
         return;
     }
-    APlayerController* PlayerController =
-        Cast<APlayerController>(Controller);
-
-    const bool bLeftMouseDown =
-        PlayerController &&
-        PlayerController->IsInputKeyDown(EKeys::LeftMouseButton);
-
-    const bool bRightMouseDown =
-        PlayerController &&
-        PlayerController->IsInputKeyDown(EKeys::RightMouseButton);
-
     const FVector2D RawInput =
         Value.Get<FVector2D>();
         LastMoveInput2D = RawInput;
+
+    const UCharacterMovementComponent* DebugMovement =
+        GetCharacterMovement();
+
+    if (DebugMovement)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT(
+                "MOVE | Walk=%s Max=%.1f Velocity=%.1f"
+            ),
+            bWalkRequested ? TEXT("TRUE") : TEXT("FALSE"),
+            DebugMovement->MaxWalkSpeed,
+            DebugMovement->Velocity.Size2D()
+        );
+    }
 
     if (bMovementStoppedSinceLastInput)
     {
         // Só movimento frontal positivo inicia o retorno.
         if (RawInput.Y > 0.0f &&
-            !bLeftMouseDown &&
-            !bRightMouseDown)
+            !bLeftMouseCamera &&
+            !bMouseTurnCharacter)
         {
             bCameraRecentering = true;
         }
@@ -445,14 +561,8 @@ void AKashmirCharacter::Look(const FInputActionValue& Value)
         return;
     }
 
-    const bool bLeftMouseDown =
-        PlayerController->IsInputKeyDown(EKeys::LeftMouseButton);
-
-    const bool bRightMouseDown =
-        PlayerController->IsInputKeyDown(EKeys::RightMouseButton);
-
     // Mouse sozinho não controla a câmera.
-    if (!bLeftMouseDown && !bRightMouseDown)
+    if (!bLeftMouseCamera && !bMouseTurnCharacter)
     {
         return;
     }
@@ -464,7 +574,7 @@ void AKashmirCharacter::Look(const FInputActionValue& Value)
     AddControllerPitchInput(Input.Y);
 
     // Somente RMB também altera o facing do personagem.
-    if (bRightMouseDown)
+    if (bMouseTurnCharacter)
     {
         const FRotator ControlRotation =
             PlayerController->GetControlRotation();
@@ -834,6 +944,40 @@ void AKashmirCharacter::EndMouseTurnCharacter()
     bMouseTurnCharacter = false;
 }
 
+void AKashmirCharacter::BeginLeftMouseCamera()
+{
+    bLeftMouseCamera = true;
+}
+
+void AKashmirCharacter::EndLeftMouseCamera()
+{
+    bLeftMouseCamera = false;
+}
+
+void AKashmirCharacter::UpdateMouseForwardMovement()
+{
+    if (!bLeftMouseCamera ||
+        !bMouseTurnCharacter ||
+        bIsDodging ||
+        Controller == nullptr)
+    {
+        return;
+    }
+
+    const FRotator ControlYaw(
+        0.0f,
+        Controller->GetControlRotation().Yaw,
+        0.0f
+    );
+
+    AddMovementInput(
+        FRotationMatrix(ControlYaw).GetUnitAxis(EAxis::X),
+        1.0f
+    );
+
+    bCameraRecentering = false;
+}
+
 void AKashmirCharacter::UpdateLockOn(float DeltaSeconds)
 {
     if (!IsValid(CurrentLockOnTarget) || Controller == nullptr)
@@ -987,6 +1131,8 @@ void AKashmirCharacter::Tick(float DeltaSeconds)
         UpdateDodge(DeltaSeconds);
     }
 
+    UpdateMouseForwardMovement();
+
     //
     // 2. Estado de Lock-On.
     //
@@ -1007,23 +1153,8 @@ void AKashmirCharacter::Tick(float DeltaSeconds)
 
     // restante atual do recenter...
 
-    APlayerController* PlayerController =
-        Cast<APlayerController>(Controller);
-
-    if (PlayerController == nullptr)
-    {
-        bCameraRecentering = false;
-        return;
-    }
-
     // Qualquer controle manual do mouse cancela o retorno.
-    const bool bLeftMouseDown =
-        PlayerController->IsInputKeyDown(EKeys::LeftMouseButton);
-
-    const bool bRightMouseDown =
-        PlayerController->IsInputKeyDown(EKeys::RightMouseButton);
-
-    if (bLeftMouseDown || bRightMouseDown)
+    if (bLeftMouseCamera || bMouseTurnCharacter)
     {
         bCameraRecentering = false;
         return;
@@ -1078,30 +1209,14 @@ FVector AKashmirCharacter::CalculateDodgeDirection() const
 {
     FVector2D DodgeInput = LastMoveInput2D;
 
-    const APlayerController* PlayerController =
-        Cast<APlayerController>(Controller);
-
     //
     // LMB + RMB também representa movimento frontal.
     //
-    if (PlayerController != nullptr)
+    if (bLeftMouseCamera &&
+        bMouseTurnCharacter &&
+        DodgeInput.IsNearlyZero())
     {
-        const bool bLeftMouseDown =
-            PlayerController->IsInputKeyDown(
-                EKeys::LeftMouseButton
-            );
-
-        const bool bRightMouseDown =
-            PlayerController->IsInputKeyDown(
-                EKeys::RightMouseButton
-            );
-
-        if (bLeftMouseDown &&
-            bRightMouseDown &&
-            DodgeInput.IsNearlyZero())
-        {
-            DodgeInput.Y = 1.0f;
-        }
+        DodgeInput.Y = 1.0f;
     }
 
     //

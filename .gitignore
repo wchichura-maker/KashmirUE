@@ -28,3 +28,12 @@ Thumbs.db
 # Unreal local caches
 Plugins/*/Intermediate/
 Plugins/*/Binaries/
+
+# Local editor/user configuration
+Config/DefaultEditor.ini
+
+# Local source libraries and bulk retarget imports are outside the prototype baseline
+External/
+Content/KashmirAct/Characters/Player/Animation/Retargeted/
+Content/KashmirAct/Characters/Player/Animation/Source/
+Content/KashmirAct/Characters/Player/Animation/Locomotion/BS_Player_Locomotion.uasset

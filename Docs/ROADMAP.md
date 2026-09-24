@@ -27,59 +27,64 @@ validação consolidada ao final. Não há commit ou push automático.
 
 ## UE1 — Personagem e locomoção
 
-### UE1.1 — Personagem canônico — EM ANDAMENTO
+### UE1.1 — Personagem canônico — CONCLUÍDO
 
-- `ACharacter`, Character Movement e Enhanced Input.
-- Câmera third-person independente do facing.
-- Controle de exploração inspirado em MMO/WoW:
-  - `W/S` forward/backpedal;
-  - `A/D` turn;
-  - `Q/E` strafe;
-  - LMB free-look;
-  - RMB câmera + facing;
-  - LMB + RMB forward relativo à câmera.
-- Free-look com offset persistente e recenter contextual após parada + novo
-  movimento frontal.
-- Velocidade de recenter separada de Camera Rotation Lag.
-- Zoom suave, collision avoidance e camera lag.
-- Movimento diagonal normalizado.
-- Configuração data-driven de velocidade e dinâmica.
-- Sprint condicionado à componente frontal.
-- Aquisição básica de alvo de lock-on implementada e validada.
-- Pendente:
-  - comportamento corporal durante lock-on;
-  - movimento durante lock-on;
-  - câmera de lock-on;
-  - esquiva em oito direções;
-  - validação consolidada do UE1.1.
-- [x] ACharacter + Character Movement.
-- [x] Enhanced Input.
-- [x] W/S forward/backpedal.
-- [x] A/D turn.
-- [x] Q/E strafe.
-- [x] LMB free-look.
-- [x] RMB câmera + facing.
-- [x] LMB + RMB movimento frontal pela câmera.
-- [x] Recenter contextual pelo menor arco.
-- [x] Movimento data-driven.
-- [x] Sprint frontal.
-- [x] Lock-On por proximidade.
-- [x] câmera acompanhando target.
-- [x] facing corporal de Lock-On.
-- [x] movimento relativo ao target.
-- [x] órbita com correção radial.
-- [x] distância de aquisição/quebra.
-- [x] linha de visão com grace time.
-- [x] ciclo de targets por Tab.
-- [x] saída de Lock-On por A/D.
-- [x] dodge em oito direções.
-- [x] Integração validada entre exploração, Lock-On e dodge.
+Baseline implementada e validada:
 
-### UE1.2 — Pipeline de animação
+- [x] `ACharacter`, Character Movement e Enhanced Input.
+- [x] Exploração canônica: `W/S` forward/backpedal relativo ao facing, `A/D`
+  turn e `Q/E` strafe, com diagonal normalizada.
+- [x] LMB free-look sem alterar o corpo; RMB controla câmera e Yaw corporal.
+- [x] Free-look preserva o offset e só inicia recenter após parada completa e
+  novo movimento frontal; mouse cancela o retorno, que usa o menor arco e uma
+  velocidade independente de Camera Rotation Lag.
+- [x] LMB + RMB move para frente pela direção horizontal da câmera/control
+  rotation, com autoridade única em C++.
+- [x] Zoom suave, collision avoidance, camera lag e configuração data-driven de
+  movimento/câmera.
+- [x] Lock-On com aquisição do alvo válido mais próximo, rebuild e ciclo por
+  distância com wrap-around, distância de aquisição/quebra e linha de visão
+  com grace time.
+- [x] Câmera e corpo acompanham o alvo; `W/S` aproximam/afastam e `Q/E` orbitam
+  relativamente ao target com correção radial.
+- [x] `A/D` encerra Lock-On fora de Dodge e preserva a intenção manual.
+- [x] Dodge em oito direções, com trajetória fixada; no Lock-On, permanece
+  target-relative e preserva o Lock-On durante a execução.
+- [x] Mapeamento reconciliado: Left Shift = Dodge; Space sem binding e reservado
+  para o futuro intent de Jump/Traversal.
 
-- Manny/Quinn como skeleton inicial; segunda malha por IK Rig/Retargeter.
-- Animation Blueprint, starts/stops, turn-in-place, foot IK e root-motion policy.
-- Linked Anim Layers por postura/arma.
+### UE1.2 — Pipeline de animação — BASELINE VALIDADA
+
+Implementado e validado:
+
+- [x] Bridge nativa `UKashmirAnimInstance` e `ABP_KashmirCharacter`.
+- [x] State Machine `SM_Locomotion` com estados Idle e Locomotion.
+- [x] Variáveis de apresentação `GroundSpeed`, `Direction`, `bShouldMove`,
+  `bIsFalling`, `bIsDodging`, `bIsLockedOn` e `bIsWalking`.
+- [x] `bShouldMove` derivado da velocidade horizontal, permanecendo verdadeiro
+  durante braking enquanto `GroundSpeed > 3`.
+- [x] `BS_Player_Jog_Direction` e `BS_Player_Walk_Direction` como Blend Spaces
+  1D por `Direction`, faixa `-180..180` e Wrap Input na costura angular.
+- [x] Jog como gait padrão a `525`; Walk de precisão por Left Alt a `215`,
+  conforme `DA_PlayerMovement_Default`.
+- [x] Autoridade de velocidade em gameplay C++ e configuração data-driven; o
+  AnimBP apenas representa o estado.
+- [x] Locomoção-base in-place nas 12 sequências alcançáveis e consumo atual de
+  Root Motion pelo AnimBP limitado a montages.
+
+Pendente:
+
+- [ ] Calibração interativa de cadência/play rate direcional.
+- [ ] Start / Stop.
+- [ ] Turn In Place refinado.
+- [ ] Foot IK.
+- [ ] Política final de Root Motion.
+- [ ] Linked Anim Layers.
+- [ ] Animação final de Dodge.
+- [ ] Fluxo de animação de Jump.
+- [ ] Traversal contextual.
+- [ ] Integração de Motion Warping para traversal.
+- [ ] Gait de Sprint dirigido por buffs/status, sem input direto.
 
 ## UE2 — Combate corpo a corpo autoritativo
 
@@ -123,21 +128,10 @@ validação consolidada ao final. Não há commit ou push automático.
 - Replays, persistência e compatibilidade de schema.
 - Magia, projéteis, tiro/arremesso, mundo e sistemas P1+.
 
-## Estado operacional atual
+## Histórico de reconciliação
 
-UE0.1, UE0.2 e UE0.3 estão concluídos e possuem validação consolidada.
-
-### UE1.1 — Personagem canônico — CONCLUÍDO
-
-- [x] ACharacter + Character Movement.
-- [x] Enhanced Input.
-- [x] Política completa de exploração.
-- [x] Free-look e recenter contextual.
-- [x] Sprint frontal.
-- [x] Lock-On com aquisição, ciclo, distância e LOS.
-- [x] Facing e câmera orientados ao target.
-- [x] Movimento target-relative e órbita.
-- [x] Saída de Lock-On por A/D.
-- [x] Dodge em oito direções.
-- [x] Integração validada entre exploração, Lock-On e dodge.
-
+O bloco antigo que mantinha UE1.1 como “EM ANDAMENTO” foi substituído em
+2026-09-23 após a validação consolidada. A regra histórica de Sprint frontal
+também foi superseded: não existe Sprint por input direto; uma futura gait de
+Sprint dependerá de buffs/status e de decisão própria. UE0.1, UE0.2 e UE0.3
+permanecem concluídos conforme seus relatórios de fundação.

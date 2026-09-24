@@ -18,12 +18,15 @@
 
 ## UE-0003 — Autoridade de gameplay
 
+- **Status:** confirmada e validada para a baseline atual.
 - C++ resolve `ActionRequest -> ActionRuntime -> CombatActionDefinition ->
   Delivery -> Target -> Effect -> CombatResult`.
 - Blueprints, Animation Blueprints, Control Rig, física, VFX, áudio e câmera
   apresentam ou configuram; não aplicam dano nem substituem o runtime.
 - GAS integra atributos, custos, tags, efeitos e tarefas, sem colapsar Delivery,
   Target e Effect em uma única habilidade.
+- Na baseline UE1.1, C++ também é a única autoridade de movimento para LMB+RMB;
+  o caminho Blueprint que aplicava actor-forward foi removido e validado.
 
 ## UE-0004 — Recursos e generalização
 
@@ -34,7 +37,7 @@
 
 ## UE-0005 — Câmera, facing e referencial de movimento
 
-- **Status:** confirmada.
+- **Status:** confirmada e validada.
 - **Escopo:** UE1.1 — personagem canônico.
 - Câmera, facing corporal e direção de movimento são conceitos independentes.
 - O modo padrão de exploração segue controle inspirado em World of Warcraft/MMO clássico.
@@ -61,7 +64,8 @@
   - o personagem acompanha o Yaw da câmera.
 - LMB + RMB:
   - personagem caminha para frente;
-  - direção horizontal de movimento é derivada da direção da câmera.
+  - direção horizontal de movimento é derivada da Control Rotation/câmera;
+  - a implementação usa uma única autoridade nativa em C++.
 
 ### Retorno da câmera
 
@@ -104,24 +108,27 @@
 
 ## UE-0007 — Política de velocidade e direção
 
-- **Status:** confirmada.
-- A magnitude combinada dos eixos de movimento deve ser limitada para impedir bônus de velocidade diagonal.
-- Strafe e backpedal podem usar multiplicadores distintos da velocidade frontal.
-- Sprint só é permitido quando existe componente frontal positiva no movimento.
-- Valores usados durante UE1.1 são parâmetros de protótipo, não regras permanentes.
-- Velocidade final não será hardcoded por personagem.
-- O sistema definitivo deverá resolver velocidade a partir de dados e modificadores, incluindo:
-  - velocidade-base;
-  - modo de locomoção;
-  - peso/carga;
-  - atributos;
-  - equipamentos;
-  - habilidades;
-  - buffs;
-  - debuffs;
-  - terreno;
-  - estados contextuais.
-- Os consumidores de movimento devem utilizar a velocidade efetiva resolvida, evitando condicionais específicas de conteúdo espalhadas pelo Character.
+- **Status:** **SUPERSEDED** pela UE-0011 para política de gait.
+- **Registro histórico, não vigente:** Sprint por input direto era permitido
+  somente quando existia componente frontal positiva no movimento.
+- Os princípios data-driven abaixo permanecem vigentes e foram incorporados à
+  UE-0011:
+  - a magnitude combinada dos eixos é limitada para impedir bônus diagonal;
+  - strafe e backpedal podem usar multiplicadores distintos;
+  - velocidade final não é hardcoded por personagem;
+  - a resolução futura considera dados e modificadores, incluindo:
+    - velocidade-base;
+    - modo de locomoção;
+    - peso/carga;
+    - atributos;
+    - equipamentos;
+    - habilidades;
+    - buffs;
+    - debuffs;
+    - terreno;
+    - estados contextuais.
+- Os consumidores de movimento devem utilizar a velocidade efetiva resolvida,
+  evitando condicionais específicas de conteúdo espalhadas pelo Character.
 
 ## UE-0008 — Hierarquia e locomoção de Lock-On
 
@@ -188,3 +195,78 @@
 - Velocidade e duração são data-driven por `UKashmirMovementConfig`.
 - A implementação atual usa `CharacterMovement` e velocidade controlada.
 - Animation Montage, Root Motion, i-frames e recovery pertencem à evolução posterior do sistema.
+
+## UE-0011 — Política de gait e autoridade de velocidade
+
+- **Status:** confirmada; implementação atual validada.
+- Jog é a gait padrão.
+- Walk é a gait de precisão solicitada ao manter Left Alt pressionado.
+- Sprint não possui input direto.
+- Um Sprint futuro será resolvido por buffs, status ou gameplay effects e deverá
+  substituir temporariamente a gait padrão por uma regra explícita.
+- C++ de gameplay e configuração data-driven possuem autoridade sobre a
+  velocidade física; Blueprint e animação não escrevem `MaxWalkSpeed`.
+- Valores validados da baseline: Jog `525`, Walk `215`, conforme
+  `DA_PlayerMovement_Default`.
+
+## UE-0012 — Política de input de Dodge e Jump/Traversal
+
+- **Status:** confirmada; reserva atual validada.
+- Left Shift aciona Dodge por `IA_Dodge`.
+- Space é reservado para o futuro intent de Jump/Traversal e não aciona Dodge.
+- A baseline mantém Space sem mapping ativo e não cria `IA_Jump` antes da
+  implementação aprovada.
+
+## UE-0013 — Política de apresentação de animação
+
+- **Status:** confirmada; baseline atual validada.
+- `UKashmirAnimInstance` e `ABP_KashmirCharacter` representam estado produzido
+  por gameplay; não tomam decisões de gameplay.
+- A locomoção direcional atual usa Blend Spaces 1D dirigidos por `Direction`.
+- A costura angular `-180/+180` usa Wrap Input.
+- O estado Idle/Locomotion usa `bShouldMove` derivado da velocidade horizontal,
+  inclusive durante braking acima do threshold.
+
+## UE-0014 — Política atual de Root Motion
+
+- **Status:** confirmada para a baseline atual; política final pendente.
+- A locomoção-base Jog/Walk é in-place.
+- O AnimBP consome Root Motion somente de montages.
+- Esta decisão não habilita Root Motion global e não define ainda a política
+  final para Dodge, Jump ou Traversal.
+
+## UE-0015 — Intent de Jump e Traversal contextual
+
+- **Status:** **DECIDIDA, NÃO IMPLEMENTADA**.
+- Space resolverá primeiro um contexto válido de Traversal e, na ausência dele,
+  executará Jump nativo via Character Movement.
+- A detecção/resolução de Traversal deve ser componentizada, reutilizável e
+  data-driven, não uma coleção de traces hardcoded no Character.
+- Motion Warping é a estratégia pretendida para alinhamento contextual.
+- Não existe implementação de Jump ou Traversal nesta baseline.
+
+## UE-0016 — Fronteira e proveniência de assets
+
+- **Status:** confirmada para source control da baseline.
+- O repositório inclui somente assets exigidos pelo protótipo validado ou
+  aprovados por uma decisão explícita de governança.
+- Bibliotecas baixadas, retargets em massa e fontes em `External/` não entram no
+  Git por conveniência ou por seleção ampla de diretório.
+- Todo novo conjunto precisa registrar origem, licença/termos, data/versão,
+  hash, cadeia de derivação/retarget e limite de redistribuição antes do ingest.
+- As bibliotecas locais atualmente não rastreadas permanecem preservadas no
+  disco; esta decisão não autoriza exclusão.
+
+## UE-0017 — Escopo de Data Validation
+
+- **Status:** confirmada; política operacional vigente.
+- Iterações normais usam Data Validation direcionada aos assets e sistemas
+  afetados, acompanhada dos testes proporcionais ao risco da mudança.
+- Full Content Data Validation não é uma etapa automática de toda passagem de
+  desenvolvimento.
+- Full Content Data Validation é obrigatória para releases, migrações de assets
+  e mudanças capazes de afetar a integridade global dos assets.
+- Uma execução já em andamento não deve ser interrompida nem repetida apenas
+  pela adoção desta política.
+- Evidência deve identificar explicitamente se o escopo validado foi
+  direcionado ou global.
