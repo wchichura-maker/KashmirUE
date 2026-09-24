@@ -7,11 +7,17 @@ UENUM(BlueprintType)
 enum class ETraversalType : uint8
 {
     None,
-    VaultLow,
-    VaultHigh,
-    Mantle,
     Climb,
     LedgeGrab
+};
+
+UENUM(BlueprintType)
+enum class ETraversalExecutionState : uint8
+{
+    Idle,
+    Preparing,
+    Traversing,
+    Recovering
 };
 
 USTRUCT(BlueprintType)

@@ -35,10 +35,6 @@
 			"Enabled": true
 		},
 		{
-			"Name": "MotionWarping",
-			"Enabled": true
-		},
-		{
 			"Name": "PoseSearch",
 			"Enabled": true
 		},

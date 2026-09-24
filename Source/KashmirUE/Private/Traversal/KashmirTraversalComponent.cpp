@@ -58,12 +58,6 @@ FTraversalQueryResult UKashmirTraversalComponent::QueryTraversal() const
     Result.SurfaceActor = ForwardHit.GetActor();
     Result.SurfaceNormal = ForwardHit.ImpactNormal;
     Result.ObstacleHeight = TopHit.ImpactPoint.Z - CharacterBaseZ;
-    if (Result.ObstacleHeight < MinimumObstacleHeight
-        || Result.ObstacleHeight > MantleMaximumHeight)
-    {
-        DrawQueryDebug(Result, ForwardStart, ForwardEnd);
-        return Result;
-    }
 
     FVector LastTopPoint = TopHit.ImpactPoint;
     if (!MeasureObstacleDepth(ForwardHit, TopHit, Forward, Result.ObstacleDepth, LastTopPoint))
@@ -100,24 +94,9 @@ ETraversalType UKashmirTraversalComponent::ClassifyTraversal(
     const float ObstacleHeight,
     const float ObstacleDepth) const
 {
-    if (ObstacleHeight < MinimumObstacleHeight
-        || ObstacleHeight > MantleMaximumHeight
-        || ObstacleDepth <= 0.0f
-        || ObstacleDepth > MaximumTraversableDepth)
-    {
-        return ETraversalType::None;
-    }
-
-    if (ObstacleHeight <= LowVaultMaximumHeight)
-    {
-        return ETraversalType::VaultLow;
-    }
-    if (ObstacleHeight <= HighVaultMaximumHeight)
-    {
-        return ETraversalType::VaultHigh;
-    }
-    return ETraversalType::Mantle;
+    return ETraversalType::None;
 }
+
 
 bool UKashmirTraversalComponent::IsTopSurfaceAcceptable(const FVector& SurfaceNormal) const
 {
@@ -158,11 +137,20 @@ bool UKashmirTraversalComponent::FindTopSurface(
         return false;
     }
 
-    const FVector ProbePoint = ForwardHit.ImpactPoint + Forward * DepthProbeStep;
-    const FVector Start(ProbePoint.X, ProbePoint.Y,
-        CharacterBaseZ + MantleMaximumHeight + TopProbeHeight);
-    const FVector End(ProbePoint.X, ProbePoint.Y,
-        CharacterBaseZ + MinimumObstacleHeight);
+    const FVector ProbePoint =
+        ForwardHit.ImpactPoint + Forward * DepthProbeStep;
+
+    const FVector Start(
+        ProbePoint.X,
+        ProbePoint.Y,
+        ForwardHit.ImpactPoint.Z + TopProbeHeight
+    );
+
+    const FVector End(
+        ProbePoint.X,
+        ProbePoint.Y,
+        CharacterBaseZ + MinimumObstacleHeight
+    );
     FCollisionQueryParams Params(SCENE_QUERY_STAT(KashmirTraversalTop), false, GetOwner());
     return World->LineTraceSingleByChannel(OutTopHit, Start, End, ECC_Visibility, Params);
 }
@@ -266,4 +254,79 @@ void UKashmirTraversalComponent::DrawQueryDebug(
             8.0f, FColor::Cyan, false, 2.0f, 0, 1.5f);
     }
 #endif
+}
+
+void UKashmirTraversalComponent::SetExecutionState(ETraversalExecutionState NewState)
+{
+    if (ExecutionState == NewState)
+    {
+        return;
+    }
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Traversal State: %d -> %d"),
+        static_cast<int32>(ExecutionState),
+        static_cast<int32>(NewState)
+    );
+
+    ExecutionState = NewState;
+}
+
+bool UKashmirTraversalComponent::TryBeginTraversal(const FTraversalQueryResult& QueryResult)
+{
+    if (ExecutionState != ETraversalExecutionState::Idle)
+    {
+        return false;
+    }
+
+    if (!QueryResult.bIsValid || QueryResult.Type == ETraversalType::None)
+    {
+        return false;
+    }
+
+    ActiveTraversal = QueryResult;
+
+    SetExecutionState(ETraversalExecutionState::Preparing);
+
+    return true;
+}
+
+void UKashmirTraversalComponent::FinishTraversal()
+{
+    if (ExecutionState == ETraversalExecutionState::Idle)
+    {
+        return;
+    }
+
+    SetExecutionState(ETraversalExecutionState::Recovering);
+
+    ActiveTraversal = FTraversalQueryResult{};
+
+    SetExecutionState(ETraversalExecutionState::Idle);
+}
+
+void UKashmirTraversalComponent::CancelTraversal()
+{
+    if (ExecutionState == ETraversalExecutionState::Idle)
+    {
+        return;
+    }
+
+    ActiveTraversal = FTraversalQueryResult{};
+
+    SetExecutionState(ETraversalExecutionState::Idle);
+}
+
+bool UKashmirTraversalComponent::StartTraversalExecution()
+{
+    if (ExecutionState != ETraversalExecutionState::Preparing)
+    {
+        return false;
+    }
+
+    SetExecutionState(ETraversalExecutionState::Traversing);
+
+    return true;
 }

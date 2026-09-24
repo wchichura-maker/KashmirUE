@@ -17,6 +17,24 @@ public:
     FTraversalQueryResult QueryTraversal() const;
 
     UFUNCTION(BlueprintPure, Category="Traversal")
+    ETraversalExecutionState GetExecutionState() const
+    {
+        return ExecutionState;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Traversal")
+    const FTraversalQueryResult& GetActiveTraversal() const
+    {
+        return ActiveTraversal;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Traversal")
+    bool IsTraversalActive() const
+    {
+        return ExecutionState != ETraversalExecutionState::Idle;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Traversal")
     ETraversalType ClassifyTraversal(float ObstacleHeight, float ObstacleDepth) const;
 
     UFUNCTION(BlueprintPure, Category="Traversal")
@@ -33,9 +51,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Traversal|Classification", meta=(ClampMin="0.0"))
     float HighVaultMaximumHeight = 120.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Traversal|Classification", meta=(ClampMin="0.0"))
-    float MantleMaximumHeight = 180.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Traversal|Classification", meta=(ClampMin="1.0"))
     float MaximumTraversableDepth = 100.0f;
@@ -54,6 +69,18 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Traversal|Debug")
     bool bDrawDebugTraversal = false;
+
+    UFUNCTION(BlueprintCallable, Category="Traversal")
+    bool TryBeginTraversal(const FTraversalQueryResult& QueryResult);
+
+    UFUNCTION(BlueprintCallable, Category="Traversal")
+    void FinishTraversal();
+
+    UFUNCTION(BlueprintCallable, Category="Traversal")
+    void CancelTraversal();
+
+    UFUNCTION(BlueprintCallable, Category="Traversal")
+    bool StartTraversalExecution();
 
 private:
     bool FindForwardObstacle(
@@ -85,4 +112,13 @@ private:
         const FTraversalQueryResult& Result,
         const FVector& ForwardStart,
         const FVector& ForwardEnd) const;
+
+    void SetExecutionState(ETraversalExecutionState NewState);
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Traversal", meta=(AllowPrivateAccess="true"))
+    ETraversalExecutionState ExecutionState = ETraversalExecutionState::Idle;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Traversal", meta=(AllowPrivateAccess="true"))
+    FTraversalQueryResult ActiveTraversal;
+
 };

@@ -7,14 +7,15 @@
 - **Efeito:** Godot não é mais candidato de produção. `C:\Projetos\KashmirAct`
   permanece como arquivo histórico, referência de domínio, dados e testes.
 
-## UE-0002 — Recomeço técnico com migração semântica
+## UE-0012 — Política de input de Dodge e Jump
 
-- **Status:** confirmada.
-- **Decisão:** o executável Unreal começa limpo, em C++ e assets Unreal nativos.
-- **Migra:** decisões, contratos, regras, schemas, fixtures, testes e assets
-  licenciados/importáveis.
-- **Não migra diretamente:** GDScript, cenas, resources, import metadata,
-  shaders Godot, IPC Python e soluções visuais provisórias.
+- **Status:** confirmada e validada.
+- Left Shift aciona Dodge por `IA_Dodge`.
+- Space aciona `IA_TraversalOrJump`, atualmente resolvido como Jump simples.
+- Jump usa o `ACharacter::Jump()` / `CharacterMovement` nativo.
+- Não existe air jump, double jump ou air dodge na baseline atual.
+- Dodge continua bloqueado durante queda.
+- O nome histórico `IA_TraversalOrJump` pode permanecer temporariamente por compatibilidade, mas a mecânica ativa é apenas Jump simples.
 
 ## UE-0003 — Autoridade de gameplay
 
@@ -232,18 +233,21 @@
 - **Status:** confirmada para a baseline atual; política final pendente.
 - A locomoção-base Jog/Walk é in-place.
 - O AnimBP consome Root Motion somente de montages.
-- Esta decisão não habilita Root Motion global e não define ainda a política
-  final para Dodge, Jump ou Traversal.
+- Esta decisão não habilita Root Motion global.
+- Jump simples permanece sob autoridade do Character Movement.
+- Qualquer política futura de Root Motion para Dodge ou escalada será decidida separadamente.
 
-## UE-0015 — Intent de Jump e Traversal contextual
+## UE-0015 — Parkour contextual removido do escopo atual
 
-- **Status:** **DECIDIDA, NÃO IMPLEMENTADA**.
-- Space resolverá primeiro um contexto válido de Traversal e, na ausência dele,
-  executará Jump nativo via Character Movement.
-- A detecção/resolução de Traversal deve ser componentizada, reutilizável e
-  data-driven, não uma coleção de traces hardcoded no Character.
-- Motion Warping é a estratégia pretendida para alinhamento contextual.
-- Não existe implementação de Jump ou Traversal nesta baseline.
+- **Status:** decisão confirmada em 2026-09-24.
+- VaultLow, VaultHigh e Mantle não fazem parte do escopo atual do Kashmir.
+- Space executa Jump simples e não tenta resolver obstáculos contextuais antes do salto.
+- A tentativa de Vault com Motion Warping foi descontinuada antes de entrar na baseline.
+- `AM_VaultLow`, Motion Warping e execução de Vault não fazem parte do runtime atual.
+- O sistema de Traversal permanece apenas como fundação técnica neutra para possíveis mecânicas futuras.
+- `Climb` e `LedgeGrab` ficam reservados para desenvolvimento posterior.
+- A futura escalada será tratada como uma mecânica própria de exploração e poderá ser relacionada a trabalhos/profissões como Explorador.
+- A futura escalada não deve ser tratada como simples continuação do antigo sistema de parkour.
 
 ## UE-0016 — Fronteira e proveniência de assets
 
@@ -270,3 +274,17 @@
   pela adoção desta política.
 - Evidência deve identificar explicitamente se o escopo validado foi
   direcionado ou global.
+
+## UE-0018 — Classificação e disposição de assets
+
+- **Status:** confirmada; política operacional vigente.
+- `USED` → `KEEP IN CONTENT`.
+- `UNUSED BUT LICENSED / USEFUL` → `MOVE TO EXTERNAL`.
+- `UNKNOWN PROVENANCE` → `QUARANTINE / REVIEW`.
+- `OBSOLETE DUPLICATE` → `DELETE ONLY AFTER REFERENCE CHECK`.
+- Nenhum asset é movido ou excluído somente pelo nome, aparência ou localização.
+- A checagem de referência deve considerar Asset Registry hard/soft references
+  e, quando aplicável, Blueprint, código, configuração, carregamento dinâmico e
+  cook/package.
+- Quarentena preserva o arquivo para revisão; não autoriza uso, redistribuição
+  ou exclusão.

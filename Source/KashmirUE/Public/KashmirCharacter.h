@@ -7,6 +7,7 @@
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
+class UAnimMontage;
 class UKashmirMovementConfig;
 class UKashmirTraversalComponent;
 class USpringArmComponent;
@@ -29,6 +30,9 @@ public:
     {
         return IsValid(CurrentLockOnTarget);
     }
+
+    UFUNCTION(BlueprintPure, Category="Traversal")
+    bool IsTraversing() const;
 
     UFUNCTION(BlueprintPure, Category="Animation")
     bool IsDodging() const

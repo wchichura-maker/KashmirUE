@@ -10,6 +10,8 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "KashmirLockOnTargetComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "Traversal/KashmirTraversalComponent.h"
@@ -45,6 +47,7 @@ AKashmirCharacter::AKashmirCharacter()
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); FollowCamera->bUsePawnControlRotation = false;
     TraversalComponent = CreateDefaultSubobject<UKashmirTraversalComponent>(
         TEXT("TraversalComponent"));
+
 }
 void AKashmirCharacter::BeginPlay()
 {
@@ -315,12 +318,6 @@ void AKashmirCharacter::BeginWalk()
 {
     bWalkRequested = true;
 
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Kashmir: WALK ON")
-    );
-
     RefreshMovementSpeed();
 }
 
@@ -328,23 +325,12 @@ void AKashmirCharacter::EndWalk()
 {
     bWalkRequested = false;
 
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Kashmir: WALK OFF")
-    );
-
     RefreshMovementSpeed();
 }
 
 void AKashmirCharacter::RequestTraversalOrJump()
 {
     if (bIsDodging)
-    {
-        return;
-    }
-
-    if (TryStartTraversal())
     {
         return;
     }
@@ -369,27 +355,6 @@ void AKashmirCharacter::StopTraversalOrJump()
 
 bool AKashmirCharacter::TryStartTraversal()
 {
-    if (TraversalComponent == nullptr)
-    {
-        return false;
-    }
-
-    const FTraversalQueryResult Result = TraversalComponent->QueryTraversal();
-    if (!Result.bIsValid)
-    {
-        return false;
-    }
-
-    UE_LOG(
-        LogTemp,
-        Verbose,
-        TEXT("Traversal detected: Type=%d Height=%.1f Depth=%.1f. Execution is pending; using Jump fallback."),
-        static_cast<uint8>(Result.Type),
-        Result.ObstacleHeight,
-        Result.ObstacleDepth);
-
-    // Detection is read-only in Traversal Pass 01. Returning false deliberately
-    // preserves the native Jump fallback until traversal execution exists.
     return false;
 }
 
@@ -407,20 +372,7 @@ void AKashmirCharacter::RefreshMovementSpeed()
         bWalkRequested
             ? MovementConfig->WalkSpeed
             : MovementConfig->JogSpeed;
-
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT(
-            "Kashmir RefreshSpeed | WalkRequested=%s Jog=%.1f Walk=%.1f MaxWalkSpeed=%.1f"
-        ),
-        bWalkRequested ? TEXT("TRUE") : TEXT("FALSE"),
-        MovementConfig->JogSpeed,
-        MovementConfig->WalkSpeed,
-        Movement->MaxWalkSpeed
-    );
 }
-
 void AKashmirCharacter::ApplyMovementConfig()
 {
     if (MovementConfig == nullptr)
@@ -435,15 +387,6 @@ void AKashmirCharacter::ApplyMovementConfig()
     }
 
     Movement->MaxWalkSpeed = MovementConfig->JogSpeed;
-
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Kashmir ApplyMovementConfig | Jog=%.1f Walk=%.1f MaxWalkSpeed=%.1f"),
-        MovementConfig->JogSpeed,
-        MovementConfig->WalkSpeed,
-        Movement->MaxWalkSpeed
-    );
 
     Movement->MaxAcceleration = MovementConfig->MaxAcceleration;
     Movement->BrakingDecelerationWalking =
@@ -465,6 +408,10 @@ float AKashmirCharacter::GetConfiguredWalkSpeed() const
 
 void AKashmirCharacter::Move(const FInputActionValue& Value)
 {
+    if (IsTraversing())
+    {
+        return;
+    }
     if (Controller == nullptr)
     {
         return;
@@ -480,20 +427,6 @@ void AKashmirCharacter::Move(const FInputActionValue& Value)
 
     const UCharacterMovementComponent* DebugMovement =
         GetCharacterMovement();
-
-    if (DebugMovement)
-    {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT(
-                "MOVE | Walk=%s Max=%.1f Velocity=%.1f"
-            ),
-            bWalkRequested ? TEXT("TRUE") : TEXT("FALSE"),
-            DebugMovement->MaxWalkSpeed,
-            DebugMovement->Velocity.Size2D()
-        );
-    }
 
     if (bMovementStoppedSinceLastInput)
     {
@@ -676,6 +609,10 @@ void AKashmirCharacter::Look(const FInputActionValue& Value)
 }
 void AKashmirCharacter::RequestDodge()
 {
+    if (IsTraversing())
+    {
+        return;
+    }
     const UCharacterMovementComponent* Movement =
         GetCharacterMovement();
 
@@ -1390,4 +1327,8 @@ FVector AKashmirCharacter::CalculateDodgeDirection() const
         Forward * DodgeInput.Y
         + Right * DodgeInput.X
     ).GetSafeNormal();
+}
+bool AKashmirCharacter::IsTraversing() const
+{
+    return TraversalComponent && TraversalComponent->IsTraversalActive();
 }
