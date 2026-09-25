@@ -53,7 +53,38 @@ struct KASHMIRUE_API FKashmirCombatActionDefinition
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<EKashmirResolutionType> Effects;
 };
+USTRUCT(BlueprintType)
+struct KASHMIRUE_API FKashmirEffectResult
+{
+    GENERATED_BODY()
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    EKashmirResolutionType Resolution =
+        EKashmirResolutionType::Damage;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FName TargetId;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FGameplayTag EffectTag;
+
+    /**
+     * Generic resolved magnitude.
+     * Zero means no numeric magnitude has been resolved yet.
+     */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    float Magnitude = 0.0f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FGameplayTag HitRegion;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FVector ImpactDirection =
+        FVector::ZeroVector;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    float ImpactStrength = 0.0f;
+};
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirCombatResult
 {
@@ -67,4 +98,7 @@ struct KASHMIRUE_API FKashmirCombatResult
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FGameplayTagContainer EffectTags;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TArray<FKashmirEffectResult> Effects;
 };
