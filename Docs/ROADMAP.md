@@ -50,8 +50,9 @@ Baseline implementada e validada:
 - [x] `A/D` encerra Lock-On fora de Dodge e preserva a intenção manual.
 - [x] Dodge em oito direções, com trajetória fixada; no Lock-On, permanece
   target-relative e preserva o Lock-On durante a execução.
-- [x] Mapeamento reconciliado: Left Shift = Dodge; Space sem binding e reservado
-  para o futuro intent de Jump/Traversal.
+- [x] Mapeamento reconciliado: Left Shift = Dodge; Space executa Jump simples
+  via `IA_TraversalOrJump`, usando `ACharacter::Jump()` e Character Movement.
+- [x] Jump simples bloqueado durante Dodge; sem double jump, air jump ou air dodge.
 
 ### UE1.2 — Pipeline de animação — BASELINE VALIDADA
 
@@ -71,35 +72,83 @@ Implementado e validado:
   AnimBP apenas representa o estado.
 - [x] Locomoção-base in-place nas 12 sequências alcançáveis e consumo atual de
   Root Motion pelo AnimBP limitado a montages.
+  - [x] Fluxo de Jump integrado ao `SM_Locomotion` com `JumpStart`, `Airborne` e
+  `Land`, mantendo a física sob autoridade do Character Movement.
+- [x] Transições de aterrissagem validadas para Idle e Locomotion sem congelamento
+  visual durante landing em movimento.
+- [x] Start/Stop dedicado removido da baseline; Idle e Locomotion permanecem
+  conectados diretamente, com sensação de peso produzida pela dinâmica do
+  Character Movement e pelo blend de animação.
+- [x] Baseline física validada com `MaxAcceleration = 1500`,
+  `BrakingDecelerationWalking = 500` e `GroundFriction = 8`.
+  - [x] Start/Stop dedicado removido da baseline; Idle e Locomotion permanecem
+  conectados diretamente.
+- [x] Peso de locomoção validado por Character Movement com
+  `MaxAcceleration = 1500`, `BrakingDecelerationWalking = 500` e
+  `GroundFriction = 8`.
 
 Pendente:
 
 - [ ] Calibração interativa de cadência/play rate direcional.
-- [ ] Start / Stop.
-- [ ] Turn In Place refinado.
-- [ ] Foot IK.
 - [ ] Política final de Root Motion.
 - [ ] Linked Anim Layers.
-- [ ] Animação final de Dodge.
-- [ ] Fluxo de animação de Jump.
-- [ ] Traversal contextual.
-- [ ] Integração de Motion Warping para traversal.
 - [ ] Gait de Sprint dirigido por buffs/status, sem input direto.
 
+### Polimento futuro de animação
+
+Não bloqueia o avanço para combate:
+
+- [ ] Turn In Place refinado.
+- [ ] Animação final de Dodge.
+- [ ] Foot IK.
+- [ ] Start/Stop dedicado somente se futuramente houver ganho visual suficiente
+  para justificar a complexidade adicional.
+
+
+### Futuro de exploração — fora da baseline atual
+
+- VaultLow, VaultHigh, Mantle e parkour contextual foram removidos do escopo atual.
+- Space permanece dedicado ao Jump simples.
+- Motion Warping não faz parte do runtime atual.
+- Climb e LedgeGrab permanecem reservados para um sistema futuro de exploração.
+- A futura escalada será tratada como mecânica própria e poderá se relacionar a
+  trabalhos/profissões como Explorador, sem depender da antiga implementação de Vault.
 ## UE2 — Combate corpo a corpo autoritativo
 
-### UE2.1 — Resolução generalizada
+### UE2.1 — Resolução generalizada — FUNDAÇÃO VALIDADA
 
-- Delivery, Target, Effect e CombatResult em C++.
-- Damage, heal, control, modify, displace, create, destroy e information.
-- GAS como adaptador de atributos/efeitos, não como segundo resolver.
+Implementado e validado:
+
+- [x] `CombatResolver` genérico separando Delivery, Target, Effect e CombatResult.
+- [x] `FKashmirEffectResult` detalhado por alvo e efeito.
+- [x] `FKashmirHitEvidence` como contrato entre contato físico e gameplay.
+- [x] Conversão de `FHitResult` para evidência semântica.
+- [x] `UKashmirHitRegionMap` data-driven para converter bones em `HitRegion.*`.
+- [x] Pontos de contato de arma independentes do tipo específico de arma.
+- [x] Construção determinística de sweep segments entre frames.
+- [x] Sweep físico real no `UWorld`, com deduplicação por ator durante a janela ativa.
+- [x] Velocidade, direção e intensidade física do ponto de contato preservadas.
+- [x] `MeleeHitProcessor` conectando trace físico, HitEvidence e CombatResolver.
+- [x] `DamageResolver` numérico separado da física e da aplicação em Health.
+- [x] `EffectApplication` como única camada atual autorizada a alterar Health.
+- [x] Damage, Heal e clamp de Health cobertos por Automation Tests.
+
+Pendente para concluir UE2.1:
+
+- [ ] Definições data-driven de ataques/armas fornecendo BaseDamage e multiplicadores.
+- [ ] Identidade runtime estável de entidades, sem depender de nome de Actor.
+- [ ] Integração com GAS/Attribute Set como adaptador de estado.
+- [ ] Generalização da aplicação para Control, Modify, Displace, Create,
+  Destroy e Information.
 
 ### UE2.2 — Evidência, anatomia e defesa
 
-- Sweeps/traces produzem HitEvidence deduplicado.
-- Hurtboxes por região; lâmina, ponta, haste, punhos e pés.
-- Corte, perfuração, impacto, block geométrico, parry temporal, clash, deflect,
-  stagger, guard break e recuperação.
+- Hurtboxes e Physics Asset por regiões semânticas.
+- Block geométrico.
+- Parry temporal.
+- Clash / deflect.
+- Stagger e guard break.
+- Reação física parcial e integração futura com ragdoll/Physics Control.
 
 ### UE2.3 — Espada direcional
 

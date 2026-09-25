@@ -7,16 +7,6 @@
 - **Efeito:** Godot não é mais candidato de produção. `C:\Projetos\KashmirAct`
   permanece como arquivo histórico, referência de domínio, dados e testes.
 
-## UE-0012 — Política de input de Dodge e Jump
-
-- **Status:** confirmada e validada.
-- Left Shift aciona Dodge por `IA_Dodge`.
-- Space aciona `IA_TraversalOrJump`, atualmente resolvido como Jump simples.
-- Jump usa o `ACharacter::Jump()` / `CharacterMovement` nativo.
-- Não existe air jump, double jump ou air dodge na baseline atual.
-- Dodge continua bloqueado durante queda.
-- O nome histórico `IA_TraversalOrJump` pode permanecer temporariamente por compatibilidade, mas a mecânica ativa é apenas Jump simples.
-
 ## UE-0003 — Autoridade de gameplay
 
 - **Status:** confirmada e validada para a baseline atual.
@@ -210,13 +200,15 @@
 - Valores validados da baseline: Jog `525`, Walk `215`, conforme
   `DA_PlayerMovement_Default`.
 
-## UE-0012 — Política de input de Dodge e Jump/Traversal
+## UE-0012 — Política de input de Dodge e Jump
 
-- **Status:** confirmada; reserva atual validada.
+- **Status:** confirmada e validada.
 - Left Shift aciona Dodge por `IA_Dodge`.
-- Space é reservado para o futuro intent de Jump/Traversal e não aciona Dodge.
-- A baseline mantém Space sem mapping ativo e não cria `IA_Jump` antes da
-  implementação aprovada.
+- Space aciona `IA_TraversalOrJump`, atualmente resolvido como Jump simples.
+- Jump usa o `ACharacter::Jump()` / `CharacterMovement` nativo.
+- Não existe air jump, double jump ou air dodge na baseline atual.
+- Dodge continua bloqueado durante queda.
+- O nome histórico `IA_TraversalOrJump` pode permanecer temporariamente por compatibilidade, mas a mecânica ativa é apenas Jump simples.
 
 ## UE-0013 — Política de apresentação de animação
 
@@ -288,3 +280,46 @@
   cook/package.
 - Quarentena preserva o arquivo para revisão; não autoriza uso, redistribuição
   ou exclusão.
+
+## UE-0019 — Simplificação de Start/Stop e dinâmica de locomoção
+
+- **Status:** confirmada e validada.
+- Estados dedicados de animação `Start` e `Stop` não fazem parte da baseline atual.
+- Idle e Locomotion permanecem conectados diretamente.
+- A sensação de peso ao iniciar e encerrar movimento deve ser produzida prioritariamente por:
+  - aceleração do Character Movement;
+  - braking;
+  - blending de animação.
+- A baseline validada usa:
+  - `MaxAcceleration = 1500`;
+  - `BrakingDecelerationWalking = 500`;
+  - `GroundFriction = 8`.
+- Start/Stop dedicado permanece apenas como possível polimento futuro caso o ganho visual justifique a complexidade.
+- Turn In Place refinado e animação final de Dodge também ficam fora do caminho crítico atual.
+
+## UE-0020 — Separação entre evidência física, resolução e aplicação
+
+- **Status:** confirmada e validada para a fundação UE2.
+- Contato físico não aplica dano diretamente.
+- O fluxo autoritativo é:
+  `Weapon Contact -> FHitResult -> HitEvidence -> CombatResolver -> EffectResult -> DamageResolver -> EffectApplication`.
+- Animação, trace, sweep, física e ragdoll produzem ou apresentam evidência; não são autoridade para alterar Health.
+- `FKashmirHitEvidence` preserva dados físicos como ponto de impacto, normal, bone, direção e velocidade.
+- `FKashmirCombatResult` representa resultados lógicos de combate.
+- `FKashmirEffectResult` carrega magnitude, região atingida, direção de impacto e intensidade física.
+- Apenas a camada de aplicação de efeitos pode alterar estado persistente como Health.
+
+## UE-0021 — Regiões semânticas e rastreamento de armas
+
+- **Status:** confirmada e validada para a fundação UE2.
+- Gameplay não depende diretamente de nomes de bones específicos do skeleton.
+- `UKashmirHitRegionMap` converte bones do skeleton para regiões semânticas `HitRegion.*`.
+- Bones desconhecidos em contatos esqueléticos são rejeitados em vez de receber classificação implícita.
+- Armas melee usam pontos de contato configuráveis e não regras específicas por tipo de arma.
+- O sistema suporta quantidade arbitrária de pontos rastreáveis.
+- Para espada, a baseline recomendada de autoria é:
+  - `Weapon_Base`;
+  - `Weapon_Mid`;
+  - `Weapon_Tip`.
+- Sweeps físicos produzem evidência de contato e deduplicam um mesmo ator durante uma janela ativa.
+- `ImpactStrength` permanece separado de `Damage Magnitude`; velocidade física não determina automaticamente dano.
