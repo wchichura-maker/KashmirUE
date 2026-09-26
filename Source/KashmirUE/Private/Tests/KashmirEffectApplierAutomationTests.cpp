@@ -229,5 +229,80 @@ bool FKashmirEffectApplierClampTest::RunTest(
 
     return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FKashmirEffectApplierSuppressedDamageTest,
+    "Kashmir.Combat.EffectApplication.SuppressedDamage",
+    EAutomationTestFlags::EditorContext |
+    EAutomationTestFlags::EngineFilter
+)
 
+bool FKashmirEffectApplierSuppressedDamageTest::RunTest(
+    const FString& Parameters)
+{
+    FKashmirHealthState Health;
+
+    Health.Current =
+        100.0f;
+
+    Health.Maximum =
+        100.0f;
+
+    FKashmirEffectResult Effect;
+
+    Effect.Resolution =
+        EKashmirResolutionType::Damage;
+
+    Effect.Magnitude =
+        30.0f;
+
+    Effect.bSuppressed =
+        true;
+
+    FKashmirEffectApplicationResult Result;
+    FString Reason;
+
+    FKashmirEffectApplier Applier;
+
+    const bool bResolved =
+        Applier.Apply(
+            Effect,
+            Health,
+            Result,
+            Reason
+        );
+
+    TestTrue(
+        TEXT("Suppressed effect resolves successfully"),
+        bResolved
+    );
+
+    TestFalse(
+        TEXT("Suppressed damage is not applied"),
+        Result.bApplied
+    );
+
+    TestTrue(
+        TEXT("Health remains unchanged"),
+        FMath::IsNearlyEqual(
+            Health.Current,
+            100.0f,
+            0.001f
+        )
+    );
+
+    TestTrue(
+        TEXT("No magnitude reaches persistent state"),
+        FMath::IsNearlyZero(
+            Result.AppliedMagnitude,
+            0.001f
+        )
+    );
+
+    TestTrue(
+        TEXT("Suppressed application produces no error"),
+        Reason.IsEmpty()
+    );
+
+    return true;
+}
 #endif

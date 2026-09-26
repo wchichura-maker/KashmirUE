@@ -80,7 +80,7 @@ protected:
     float TraceRadius = 3.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Weapon Trace")
-    TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Pawn;
+    TEnumAsByte<ECollisionChannel> TraceChannel = ECC_GameTraceChannel1;
 
 private:
 

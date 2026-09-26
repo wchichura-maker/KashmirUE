@@ -84,6 +84,14 @@ struct KASHMIRUE_API FKashmirEffectResult
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     float ImpactStrength = 0.0f;
+    /**
+     * The effect was resolved but must not be
+     * applied to persistent gameplay state.
+     *
+     * Example: health damage stopped by block.
+     */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bSuppressed = false;
 };
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirCombatResult

@@ -169,7 +169,7 @@ namespace
             );
 
             TargetBox->SetCollisionResponseToChannel(
-                ECC_Pawn,
+                ECC_GameTraceChannel1,
                 ECR_Block
             );
 

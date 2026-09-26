@@ -57,7 +57,22 @@ bool FKashmirEffectApplier::Apply(
 
         return false;
     }
+    if (Effect.bSuppressed)
+    {
+        OutResult.HealthBefore =
+            Health.Current;
 
+        OutResult.HealthAfter =
+            Health.Current;
+
+        OutResult.AppliedMagnitude =
+            0.0f;
+
+        OutResult.bApplied =
+            false;
+
+        return true;
+    }
     OutResult.HealthBefore =
         Health.Current;
 
