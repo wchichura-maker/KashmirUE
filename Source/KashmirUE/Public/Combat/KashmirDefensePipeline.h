@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "Combat/KashmirDefenseResolver.h"
+#include "Combat/KashmirDeflectResolver.h"
 #include "Combat/KashmirGuardResolver.h"
 #include "Combat/KashmirHitEvidence.h"
 #include "Combat/KashmirParryResolver.h"
@@ -20,6 +21,9 @@ struct KASHMIRUE_API FKashmirDefensePipelineInput
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FKashmirParryState ParryState;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0"))
+    float DeflectStrengthMultiplier = 1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float BaseGuardDamage = 0.0f;
@@ -47,7 +51,13 @@ struct KASHMIRUE_API FKashmirDefensePipelineResult
     FKashmirParryResult Parry;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FKashmirDeflectResult Deflect;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bParried = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bDeflected = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bBlocked = false;

@@ -25,6 +25,23 @@ bool FKashmirDefensePipeline::Resolve(
 
     OutResult.bParried = OutResult.Parry.bParried;
 
+    FKashmirDeflectInput DeflectInput;
+    DeflectInput.ParryResult = OutResult.Parry;
+    DeflectInput.StrengthMultiplier = Input.DeflectStrengthMultiplier;
+
+    FKashmirDeflectResolver DeflectResolver;
+    if (!DeflectResolver.Resolve(
+            Evidence,
+            DeflectInput,
+            OutResult.Deflect,
+            OutReason))
+    {
+        OutResult = {};
+        return false;
+    }
+
+    OutResult.bDeflected = OutResult.Deflect.bDeflected;
+
     /*
      * Parry has first priority. A successful parry ends defensive
      * resolution before block and guard, so baseline guard stamina
