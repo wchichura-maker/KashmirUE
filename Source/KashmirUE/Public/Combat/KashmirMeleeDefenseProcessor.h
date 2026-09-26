@@ -40,6 +40,9 @@ struct KASHMIRUE_API FKashmirMeleeDefenseResult
     bool bDamageAllowed = true;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bDamageSuppressedByParry = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bDamageSuppressedByBlock = false;
 };
 

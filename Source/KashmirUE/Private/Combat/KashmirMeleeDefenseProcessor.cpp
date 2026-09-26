@@ -25,10 +25,15 @@ bool FKashmirMeleeDefenseProcessor::Resolve(
         return false;
     }
 
+    OutResult.bDamageSuppressedByParry =
+        OutResult.DefenseResult.bParried;
+
     OutResult.bDamageSuppressedByBlock =
+        !OutResult.bDamageSuppressedByParry &&
         OutResult.DefenseResult.bBlocked;
 
     OutResult.bDamageAllowed =
+        !OutResult.bDamageSuppressedByParry &&
         !OutResult.bDamageSuppressedByBlock;
 
     /*
@@ -45,8 +50,7 @@ bool FKashmirMeleeDefenseProcessor::Resolve(
         if (Effect.Resolution ==
             EKashmirResolutionType::Damage)
         {
-            Effect.bSuppressed =
-                OutResult.bDamageSuppressedByBlock;
+            Effect.bSuppressed = !OutResult.bDamageAllowed;
         }
     }
 

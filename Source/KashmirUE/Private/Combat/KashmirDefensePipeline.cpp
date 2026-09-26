@@ -10,6 +10,33 @@ bool FKashmirDefensePipeline::Resolve(
     OutResult = {};
     OutReason.Reset();
 
+    FKashmirParryResolver ParryResolver;
+
+    if (!ParryResolver.Resolve(
+            Evidence,
+            Input.BlockState,
+            Input.ParryState,
+            OutResult.Parry,
+            OutReason))
+    {
+        OutResult = {};
+        return false;
+    }
+
+    OutResult.bParried = OutResult.Parry.bParried;
+
+    /*
+     * Parry has first priority. A successful parry ends defensive
+     * resolution before block and guard, so baseline guard stamina
+     * remains untouched.
+     */
+    if (OutResult.bParried)
+    {
+        OutResult.Guard.StaminaBefore = Input.AvailableStamina;
+        OutResult.Guard.StaminaAfter = Input.AvailableStamina;
+        return true;
+    }
+
     FKashmirDefenseResolver DefenseResolver;
 
     if (!DefenseResolver.ResolveBlock(

@@ -325,4 +325,64 @@ bool FKashmirMeleeDefenseProcessorMatrixTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FKashmirMeleeDefenseProcessorParryTest,
+    "Kashmir.Combat.MeleeDefense.ParrySuppressesDamage",
+    EAutomationTestFlags::EditorContext |
+    EAutomationTestFlags::EngineFilter
+)
+
+
+bool FKashmirMeleeDefenseProcessorParryTest::RunTest(
+    const FString& Parameters)
+{
+    FKashmirMeleeDefenseInput Input;
+    Input.DefenseInput.BlockState.bActive = true;
+    Input.DefenseInput.BlockState.ForwardDirection = FVector::ForwardVector;
+    Input.DefenseInput.BlockState.HalfAngleDegrees = 60.0f;
+    Input.DefenseInput.ParryState.bActive = true;
+    Input.DefenseInput.ParryState.ElapsedTimeSeconds = 0.15f;
+    Input.DefenseInput.ParryState.Window.StartTimeSeconds = 0.10f;
+    Input.DefenseInput.ParryState.Window.EndTimeSeconds = 0.20f;
+    Input.DefenseInput.BaseGuardDamage = 30.0f;
+    Input.DefenseInput.AvailableStamina = 20.0f;
+
+    FKashmirMeleeDefenseResult Result;
+    FString Reason;
+    FKashmirMeleeDefenseProcessor Processor;
+
+    TestTrue(
+        TEXT("Parry defense resolves"),
+        Processor.Resolve(
+            MakeMeleeDefenseHit(FVector(-1.0f, 0.0f, 0.0f)),
+            Input,
+            Result,
+            Reason));
+
+    TestTrue(TEXT("Damage is suppressed by parry"), Result.bDamageSuppressedByParry);
+    TestFalse(TEXT("Parry is not reported as block suppression"), Result.bDamageSuppressedByBlock);
+    TestFalse(TEXT("Parried damage is not allowed"), Result.bDamageAllowed);
+    TestFalse(TEXT("Parry does not consume guard stamina"), Result.DefenseResult.Guard.bGuardProcessed);
+    TestEqual(TEXT("Parry preserves guard stamina"), Result.DefenseResult.Guard.StaminaAfter, 20.0f);
+
+    TestEqual(
+        TEXT("Parry preserves effect count"),
+        Result.HitResult.CombatResult.Effects.Num(),
+        1);
+
+    if (Result.HitResult.CombatResult.Effects.Num() == 1)
+    {
+        TestTrue(
+            TEXT("Parry suppresses damage effect"),
+            Result.HitResult.CombatResult.Effects[0].bSuppressed);
+        TestEqual(
+            TEXT("Parry preserves resolved magnitude"),
+            Result.HitResult.CombatResult.Effects[0].Magnitude,
+            30.0f);
+    }
+
+    return true;
+}
+
 #endif
