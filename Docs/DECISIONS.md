@@ -323,3 +323,90 @@
   - `Weapon_Tip`.
 - Sweeps físicos produzem evidência de contato e deduplicam um mesmo ator durante uma janela ativa.
 - `ImpactStrength` permanece separado de `Damage Magnitude`; velocidade física não determina automaticamente dano.
+
+## UE-0022 — Progression & Identity Foundation v0.1
+
+- **Status:** **DECIDED** em 2026-09-28; implementação global permanece
+  majoritariamente **PENDING**.
+- **Autoridade normativa:**
+  `Docs/Design/Kashmir_Progression_and_Identity_Foundation_v0.1.md`.
+- Kashmir usa um `Progression Graph` oculto. O jogador descobre sua identidade
+  em jogo e não escolhe antecipadamente uma build completa.
+- Character XP, Weapon Mastery, Technique Mastery e Combat Aptitudes
+  transferíveis são conceitos separados, com responsabilidades distintas.
+- Repetição bruta de input, uso ou cast não concede progressão significativa.
+  A ação cria evidência; resultados relevantes de combate/encounter resolvem
+  XP e mastery posteriormente.
+- Anti-farm deve considerar ameaça, contribuição real e repetição de conteúdo
+  trivial; volume de ações, isoladamente, não prova domínio.
+- Achievements são estado funcional de gameplay.
+- Classes emergem de comportamento, mastery, achievements, afiliações, quests,
+  reputação e contexto de mundo. Religião, facção ou outra afiliação cria
+  possibilidades, mas não concede classe automaticamente.
+- Classes podem abrir novas linhagens de habilidades/técnicas e podem evoluir,
+  transformar-se, ser substituídas ou deixar traços permanentes conforme o
+  histórico do personagem.
+- Cada grande família de arma possui uma `Ultimate Lineage` evolutiva. Ultimate
+  não evolui por contagem de casts; resultados relevantes e uma memória de
+  feitos históricos podem orientar seus estágios e ramificações.
+- Monsters, NPCs, quests, classes, statuses, titles, professions, crafting,
+  factions, religions, reputation, exploration, world events, bosses, PvP e
+  demais sistemas de progressão devem consultar esta fundação.
+- Documento futuro que a contradiga não a substitui silenciosamente: deve
+  registrar **CONFLICT** e exigir nova decisão explícita.
+
+## UE-0023 — Weapon Combat Grammar dirigido por TechniqueRequest
+
+- **Status da decisão:** **DECIDED** em 2026-09-28.
+- **Status técnico:** contratos e bridge **IMPLEMENTED / PARTIALLY VALIDATED**
+  por build e Automation. Bindings físicos finais, assets de estilo e gate
+  jogável completo permanecem **PENDING**.
+- Combate direcional desenhado pelo mouse é **SUPERSEDED** como modelo de input.
+  O gate manual MMB → drag → release está cancelado.
+- Combate direcional de armas, combate dirigido por Technique e gramáticas
+  específicas por família de arma permanecem **DECIDED**.
+- Fluxo autoritativo:
+  `TechniqueSlot -> TechniqueRequest -> WeaponCombatStyle -> CombatTechnique -> ActionRequest -> ActionRuntime -> Montage / Physical Trajectory -> WeaponTrace -> HitEvidence -> Combat Resolution`.
+- O input não conhece a arma equipada e opera somente por slots lógicos
+  configuráveis/rebindáveis.
+- Player, AI, Replay e futura Network usam a mesma autoridade de técnica/ação.
+- WeaponCombatStyle é data-driven; o core não possui branches `if Sword` ou
+  `if Spear`.
+- A baseline automatizada prova Sword e uma gramática conceitual contrastante
+  de Spear no mesmo resolver. Isso não significa que Spear jogável esteja
+  implementada.
+- Sword é a primeira referência jogável pretendida, com identidade de
+  versatilidade, transitions, combo, counter e mistura de slash/thrust. Spear
+  é a segunda gramática conceitual, orientada a reach, spacing, interception e
+  comportamento thrust-heavy.
+- Os 16 ataques existentes da espada são preservados durante a migração. Ainda
+  devem ser inspecionados semanticamente e classificados como Techniques
+  distintas, animation variants ou redundâncias; seus montages são preservados
+  inicialmente e cada animação não se torna automaticamente uma Skill.
+- ActionRequest/Runtime, montage/DefaultSlot, WeaponTrace, HitEvidence,
+  Defense, Parry, Clash, Deflect, Stagger e aplicação de estado permanecem
+  válidos.
+- `AttackDirection` continua relevante para HitEvidence, Block, Parry, Clash,
+  Stagger, hit reactions, VFX e avaliação de AI. A intenção direcional vem da
+  Technique, enquanto o sweep fornece a evidência física real do contato.
+- O mouse permanece prioritariamente associado à câmera, free-look, controle
+  corporal e targeting/aim quando aplicável.
+- CombatTechnique contém somente hooks/metadados de progressão. Executar uma
+  técnica não concede XP diretamente.
+
+### Distinções conceituais vigentes
+
+- **Animation:** representação visual/autoral de uma ação; não é autoridade de
+  gameplay ou identidade completa da técnica.
+- **Technique:** ação marcial executável com identidade, direção, timing,
+  custo, regras de contato, runtime e metadados próprios. Uma Technique pode
+  possuir múltiplas animation variants.
+- **Skill/Ability:** capacidade descoberta ou aprendida que pode conceder,
+  modificar, substituir ou criar Techniques.
+- **Ultimate:** Technique especializada vinculada a uma Ultimate Lineage
+  evolutiva; não é um executor paralelo ao combat core.
+- **TechniqueSlot:** slot lógico e rebindável de input. Não identifica uma
+  Technique permanente.
+- **Technique:** ação resolvida para o slot pelo `WeaponCombatStyle` e pelo
+  contexto atual. A regra é `TechniqueSlot1 -> current style binding ->
+  resolved Technique`, nunca `Slot1 = CrossSlash` de forma fixa.

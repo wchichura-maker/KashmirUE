@@ -150,11 +150,64 @@ Pendente para concluir UE2.1:
 - Stagger e guard break.
 - Reação física parcial e integração futura com ragdoll/Physics Control.
 
-### UE2.3 — Espada direcional
+### UE2.3 — Weapon Combat Grammar — FUNDAÇÃO TÉCNICA VALIDADA
 
-- Mouse drag parametriza família, direção, intensidade e curvatura.
-- Montages autorados definem antecipação, janela ativa e recuperação.
-- Control Rig/FBIK ajusta mãos, pés e alvo com limites anatômicos.
+- **UE2.3.0 — Directional Mouse Prototype:** `SUPERSEDED` como modelo de
+  input; `VALIDATED` apenas como pesquisa de infraestrutura. O gate manual
+  MMB → drag → release foi cancelado. O protótipo validou action selection,
+  apresentação de montage, integração com runtime, WeaponTrace, HitEvidence,
+  problemas de input/mapping e a regressão de DefaultSlot, mas não representa
+  o input final do produto.
+- **UE2.3.1 — CombatTechnique contract:** `IMPLEMENTED / VALIDATED` para
+  identidade da técnica, direção/forma autoradas, ActionId, timeline, montage,
+  dados de combate e hooks de mastery/discovery/Ultimate sem concessão direta
+  de XP.
+- **UE2.3.2 — WeaponCombatStyle:** `IMPLEMENTED / VALIDATED` como gramática
+  data-driven que resolve slots sem branches Sword/Spear no core.
+- **UE2.3.3 — TechniqueRequest:** `IMPLEMENTED / VALIDATED` como contrato
+  compartilhado independente de gesto de mouse.
+- **UE2.3.4 — Technique → ActionRequest / ActionRuntime bridge:**
+  `IMPLEMENTED / VALIDATED`;
+  Player, AI, Replay e futura Network convergem conceitualmente no mesmo
+  contrato e `ActionRuntime` existente.
+- **UE2.3.5 — Technique Slots:** contrato lógico Slot1..Slot5 `IMPLEMENTED`;
+  bindings físicos jogáveis, configuração rebindável e validação em PIE
+  permanecem `PENDING`. O mapping ativo MMB → gesto foi removido.
+- **UE2.3.6 — Sword Grammar:** perfil atual e seus 16 ataques foram preservados;
+  a ponte TechniqueRequest → ação autorada da espada foi validada por Automation.
+  Data Assets de produção, classificação dos 16 ataques como Techniques,
+  animation variants ou redundâncias, Combo/Transition Graph e gate jogável
+  por TechniqueSlot permanecem `PENDING`. Montages atuais devem ser preservados
+  inicialmente; `Technique != Animation`.
+- **UE2.3.7 — Second Weapon Grammar:** gramática conceitual de Spear validada
+  como `REFERENCE VALIDATION` por Automation, sem animação final, conteúdo
+  jogável ou branch específico no core. Spear jogável permanece `PENDING`.
+- **UE2.3.8 — Playable Weapon Grammar:** `PENDING`. Gate de conclusão:
+  `TechniqueSlot -> correct Technique -> montage -> weapon sweep -> HitEvidence
+  -> defense/damage -> CombatResult`.
+
+Sword permanece a primeira referência jogável pretendida: versatilidade,
+transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova
+contrastante de reach, spacing, interception e comportamento thrust-heavy.
+
+### UE2.4 — Combat Progression — PENDING
+
+- [ ] Mastery Channels.
+- [ ] Progression Evidence.
+- [ ] Encounter Reward baseado em resultado significativo.
+- [ ] Anti-Farm por ameaça, contribuição e repetição trivial.
+- [ ] Technique Discovery.
+- [ ] Achievement Integration como gameplay state.
+- [ ] Ultimate Lineage.
+- [ ] Ultimate Memory.
+- [ ] Class Emergence Hooks.
+- [ ] Affiliation Hooks.
+- [ ] Integração com NPCs e Quests.
+- Progressão não é concedida por input, cast ou repetição bruta de técnica.
+- Hooks e metadados já presentes em CombatTechnique não tornam UE2.4
+  implementado.
+- A autoridade de design é
+  `Docs/Design/Kashmir_Progression_and_Identity_Foundation_v0.1.md`.
 
 ## UE3 — Generalização de combate
 
