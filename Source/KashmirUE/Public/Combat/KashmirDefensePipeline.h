@@ -7,6 +7,8 @@
 #include "Combat/KashmirGuardResolver.h"
 #include "Combat/KashmirHitEvidence.h"
 #include "Combat/KashmirParryResolver.h"
+#include "Combat/KashmirPhysicalReactionResolver.h"
+#include "Combat/KashmirStaggerResolver.h"
 
 #include "KashmirDefensePipeline.generated.h"
 
@@ -33,6 +35,12 @@ struct KASHMIRUE_API FKashmirDefensePipelineInput
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float AvailableStamina = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FKashmirStaggerConfig StaggerConfig;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FKashmirPhysicalReactionConfig PhysicalReactionConfig;
 };
 
 
@@ -54,10 +62,22 @@ struct KASHMIRUE_API FKashmirDefensePipelineResult
     FKashmirDeflectResult Deflect;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FKashmirStaggerResult Stagger;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FKashmirPhysicalReactionResult PhysicalReaction;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bParried = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bDeflected = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bStaggered = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bPhysicalReactionRequested = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bBlocked = false;

@@ -14,6 +14,9 @@ struct KASHMIRUE_API FKashmirMeleeHitProcessInput
     FName TargetId;
     FName SourceId;
 
+    EKashmirContactSourceType ContactSource =
+        EKashmirContactSourceType::Weapon;
+
     const UKashmirHitRegionMap* HitRegionMap = nullptr;
 
     FGameplayTagContainer EvidenceTags;

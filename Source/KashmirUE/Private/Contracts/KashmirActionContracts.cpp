@@ -12,6 +12,11 @@ bool FKashmirActionRequest::IsValid(FString& OutReason) const
         OutReason = TEXT("intensity cannot be negative");
         return false;
     }
+    if (!FMath::IsFinite(Curvature) || Curvature < 0.0f || Curvature > 1.0f)
+    {
+        OutReason = TEXT("curvature must be between zero and one");
+        return false;
+    }
     OutReason.Reset();
     return true;
 }

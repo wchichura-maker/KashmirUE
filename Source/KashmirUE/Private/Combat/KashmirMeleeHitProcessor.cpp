@@ -56,8 +56,7 @@ bool FKashmirMeleeHitProcessor::Process(
     EvidenceInput.TargetId =
         Input.TargetId;
 
-    EvidenceInput.ContactSource =
-        EKashmirContactSourceType::Weapon;
+    EvidenceInput.ContactSource = Input.ContactSource;
 
     EvidenceInput.SourceId =
         Input.SourceId;

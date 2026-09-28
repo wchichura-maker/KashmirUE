@@ -21,6 +21,12 @@ void UKashmirWeaponTraceComponent::SetContactPointNames(
     ContactPointNames = InPointNames;
 }
 
+void UKashmirWeaponTraceComponent::SetContactPointBindings(
+    const TArray<FKashmirWeaponContactPointBinding>& InBindings)
+{
+    ContactPointBindings = InBindings;
+}
+
 void UKashmirWeaponTraceComponent::SetIgnoredActor(
     AActor* InIgnoredActor)
 {
@@ -55,6 +61,32 @@ bool UKashmirWeaponTraceComponent::BuildCurrentFrame(
 {
     OutFrame =
         FKashmirWeaponContactFrame();
+
+    if (!ContactPointBindings.IsEmpty())
+    {
+        TSet<FName> SeenIds;
+        for (const FKashmirWeaponContactPointBinding& Binding :
+            ContactPointBindings)
+        {
+            if (Binding.Id.IsNone() || Binding.Component == nullptr)
+            {
+                OutReason = TEXT("explicit weapon contact binding requires id and component");
+                return false;
+            }
+            if (SeenIds.Contains(Binding.Id))
+            {
+                OutReason = TEXT("explicit weapon contact bindings require unique ids");
+                return false;
+            }
+            SeenIds.Add(Binding.Id);
+
+            FKashmirWeaponContactPoint Point;
+            Point.Id = Binding.Id;
+            Point.Position = Binding.Component->GetComponentLocation();
+            OutFrame.Points.Add(Point);
+        }
+        return OutFrame.IsValid(OutReason);
+    }
 
     if (TraceSource == nullptr)
     {

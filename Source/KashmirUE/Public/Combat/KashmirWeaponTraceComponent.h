@@ -8,6 +8,18 @@
 class USceneComponent;
 
 USTRUCT(BlueprintType)
+struct KASHMIRUE_API FKashmirWeaponContactPointBinding
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FName Id;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<USceneComponent> Component;
+};
+
+USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirWeaponTraceHit
 {
     GENERATED_BODY()
@@ -49,6 +61,12 @@ public:
     UFUNCTION(BlueprintCallable, Category="Combat|Weapon Trace")
     void SetContactPointNames(
         const TArray<FName>& InPointNames
+    );
+
+    /** Explicit world-space contact components; preferred for equipped weapons. */
+    UFUNCTION(BlueprintCallable, Category="Combat|Weapon Trace")
+    void SetContactPointBindings(
+        const TArray<FKashmirWeaponContactPointBinding>& InBindings
     );
 
     UFUNCTION(BlueprintCallable, Category="Combat|Weapon Trace")
@@ -94,6 +112,9 @@ private:
 
     UPROPERTY()
     TArray<FName> ContactPointNames;
+
+    UPROPERTY()
+    TArray<FKashmirWeaponContactPointBinding> ContactPointBindings;
 
     UPROPERTY()
     TObjectPtr<AActor> IgnoredActor;

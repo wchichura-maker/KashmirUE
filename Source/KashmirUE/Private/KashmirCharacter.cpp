@@ -2,6 +2,8 @@
 #include "KashmirMovementConfig.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -13,8 +15,16 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "EngineUtils.h"
+#include "Engine/StaticMesh.h"
+#include "UObject/ConstructorHelpers.h"
 #include "GameFramework/PlayerController.h"
 #include "Traversal/KashmirTraversalComponent.h"
+#include "Combat/KashmirSwordPresentationComponent.h"
+#include "Combat/KashmirDirectionalSwordComponent.h"
+#include "Combat/KashmirWeaponTraceComponent.h"
+#include "Combat/KashmirCombatantComponent.h"
+#include "Combat/KashmirDirectionalMeleeResolver.h"
+#include "Combat/KashmirHitRegionMap.h"
 
 AKashmirCharacter::AKashmirCharacter()
 {
@@ -47,27 +57,105 @@ AKashmirCharacter::AKashmirCharacter()
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); FollowCamera->bUsePawnControlRotation = false;
     TraversalComponent = CreateDefaultSubobject<UKashmirTraversalComponent>(
         TEXT("TraversalComponent"));
+    SwordPresentationComponent =
+        CreateDefaultSubobject<UKashmirSwordPresentationComponent>(
+            TEXT("SwordPresentationComponent"));
+    DirectionalSwordComponent =
+        CreateDefaultSubobject<UKashmirDirectionalSwordComponent>(
+            TEXT("DirectionalSwordComponent"));
+
+    SwordPrototypeMesh = CreateDefaultSubobject<UStaticMeshComponent>(
+        TEXT("SwordPrototypeMesh"));
+    SwordPrototypeMesh->SetupAttachment(GetMesh(), TEXT("hand_r"));
+    SwordPrototypeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    SwordPrototypeMesh->SetRelativeLocation(FVector(45.0f, 0.0f, 0.0f));
+    SwordPrototypeMesh->SetRelativeScale3D(FVector(0.80f, 0.035f, 0.035f));
+
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> SwordPrototypeAsset(
+        TEXT("/Engine/BasicShapes/Cube.Cube"));
+    if (SwordPrototypeAsset.Succeeded())
+    {
+        SwordPrototypeMesh->SetStaticMesh(SwordPrototypeAsset.Object);
+    }
+
+    SwordTraceBase = CreateDefaultSubobject<USceneComponent>(
+        TEXT("SwordTraceBase"));
+    SwordTraceBase->SetupAttachment(SwordPrototypeMesh);
+    SwordTraceBase->SetRelativeLocation(FVector(-40.0f, 0.0f, 0.0f));
+
+    SwordTraceMid = CreateDefaultSubobject<USceneComponent>(
+        TEXT("SwordTraceMid"));
+    SwordTraceMid->SetupAttachment(SwordPrototypeMesh);
+
+    SwordTraceTip = CreateDefaultSubobject<USceneComponent>(
+        TEXT("SwordTraceTip"));
+    SwordTraceTip->SetupAttachment(SwordPrototypeMesh);
+    SwordTraceTip->SetRelativeLocation(FVector(40.0f, 0.0f, 0.0f));
+
+    WeaponTraceComponent = CreateDefaultSubobject<UKashmirWeaponTraceComponent>(
+        TEXT("WeaponTraceComponent"));
+
+    CombatantComponent = CreateDefaultSubobject<UKashmirCombatantComponent>(
+        TEXT("CombatantComponent"));
+    CombatantComponent->SetEntityId(TEXT("Player"));
+    static ConstructorHelpers::FObjectFinder<UKashmirHitRegionMap> HitRegionAsset(
+        TEXT("/Game/KashmirAct/Combat/HitRegions/DA_HitRegion_Manny.")
+        TEXT("DA_HitRegion_Manny"));
+    if (HitRegionAsset.Succeeded())
+    {
+        CombatantComponent->SetHitRegionMap(HitRegionAsset.Object);
+    }
 
 }
 void AKashmirCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    if (SwordPresentationComponent != nullptr)
+    {
+        SwordPresentationComponent->SetSkeletalMesh(GetMesh());
+    }
+    if (DirectionalSwordComponent != nullptr)
+    {
+        DirectionalSwordComponent->SetPresentationComponent(
+            SwordPresentationComponent);
+        DirectionalSwordComponent->SetWeaponTraceComponent(
+            WeaponTraceComponent);
+        DirectionalSwordComponent->OnSwordContact.AddUniqueDynamic(
+            this,
+            &AKashmirCharacter::HandleSwordContact);
+    }
+    if (WeaponTraceComponent != nullptr)
+    {
+        TArray<FKashmirWeaponContactPointBinding> ContactPoints;
+        FKashmirWeaponContactPointBinding BasePoint;
+        BasePoint.Id = TEXT("Weapon_Base");
+        BasePoint.Component = SwordTraceBase;
+        ContactPoints.Add(BasePoint);
+        FKashmirWeaponContactPointBinding MidPoint;
+        MidPoint.Id = TEXT("Weapon_Mid");
+        MidPoint.Component = SwordTraceMid;
+        ContactPoints.Add(MidPoint);
+        FKashmirWeaponContactPointBinding TipPoint;
+        TipPoint.Id = TEXT("Weapon_Tip");
+        TipPoint.Component = SwordTraceTip;
+        ContactPoints.Add(TipPoint);
+        WeaponTraceComponent->SetContactPointBindings(ContactPoints);
+        WeaponTraceComponent->SetIgnoredActor(this);
+    }
     ApplyMovementConfig();
     if (LockOnBreakDistance < LockOnAcquireDistance)
     {
         LockOnBreakDistance =
             LockOnAcquireDistance;
     }
-    const APlayerController* PC = Cast<APlayerController>(GetController());
-    if (PC == nullptr || PlayerMappingContext == nullptr) { return; }
-    const ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
-    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer)) { Subsystem->AddMappingContext(PlayerMappingContext, 0); }
+    ApplyPlayerMappingContext();
 }
 void AKashmirCharacter::SetupPlayerInputComponent(UInputComponent* Component)
 {
     Super::SetupPlayerInputComponent(Component);
     UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(Component);
     if (Input == nullptr) { UE_LOG(LogTemp, Error, TEXT("KashmirCharacter requires Enhanced Input.")); return; }
+    ApplyPlayerMappingContext();
     if (MoveAction)
     {
         Input->BindAction(
@@ -211,6 +299,113 @@ if (WalkAction)
             &AKashmirCharacter::EndLeftMouseCamera
         );
     }
+}
+
+
+void AKashmirCharacter::HandleSwordContact(
+    const FKashmirDirectionalSwordContact& Contact)
+{
+    AActor* TargetActor = Contact.TraceHit.Hit.GetActor();
+    if (TargetActor == nullptr || CombatantComponent == nullptr)
+    {
+        return;
+    }
+
+    UKashmirCombatantComponent* TargetCombatant =
+        TargetActor->FindComponentByClass<UKashmirCombatantComponent>();
+    if (TargetCombatant == nullptr)
+    {
+        return;
+    }
+
+    FKashmirDirectionalMeleeInput Input;
+    Input.InstigatorId = CombatantComponent->GetEntityId();
+    Input.TargetId = TargetCombatant->GetEntityId();
+    Input.SourceId = Contact.SourceId;
+    Input.HitRegionMap = TargetCombatant->GetHitRegionMap();
+    Input.DefenseInput = TargetCombatant->BuildDefenseInput();
+
+    FKashmirDirectionalMeleeResolver Resolver;
+    FKashmirDirectionalMeleeResult Result;
+    FString Reason;
+    if (!Resolver.Resolve(Contact, Input, Result, Reason))
+    {
+        UE_LOG(LogTemp, Verbose,
+            TEXT("Directional melee contact rejected: %s"), *Reason);
+        return;
+    }
+
+    FKashmirCombatantApplicationResult Application;
+    if (!TargetCombatant->ApplyResolvedMelee(
+            Result, Application, Reason))
+    {
+        UE_LOG(LogTemp, Verbose,
+            TEXT("Directional melee application rejected: %s"), *Reason);
+    }
+}
+
+
+bool AKashmirCharacter::RequestTechniqueSlot(
+    const EKashmirTechniqueSlot Slot)
+{
+    if (DirectionalSwordComponent == nullptr || WeaponCombatStyle == nullptr)
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("Technique request rejected: combat component/style unavailable"));
+        return false;
+    }
+
+    FKashmirTechniqueRequest Request;
+    Request.Slot = Slot;
+    Request.Source = EKashmirTechniqueRequestSource::Player;
+    if (IsValid(CurrentLockOnTarget))
+    {
+        const FVector ToTarget =
+            CurrentLockOnTarget->GetActorLocation() - GetActorLocation();
+        Request.DirectionToTarget =
+            FVector2D(ToTarget.X, ToTarget.Y).GetSafeNormal();
+    }
+
+    FString Reason;
+    if (!DirectionalSwordComponent->StartTechniqueRequest(
+            Request, WeaponCombatStyle, Reason))
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("Technique slot %d rejected: %s"),
+            static_cast<int32>(Slot), *Reason);
+        return false;
+    }
+
+    UE_LOG(LogTemp, Display,
+        TEXT("Technique slot %d started ActionId=%s"),
+        static_cast<int32>(Slot),
+        *DirectionalSwordComponent->GetRuntimeState().ActionId.ToString());
+    return true;
+}
+
+
+void AKashmirCharacter::ApplyPlayerMappingContext()
+{
+    const APlayerController* PlayerController =
+        Cast<APlayerController>(GetController());
+    if (PlayerController == nullptr || PlayerMappingContext == nullptr)
+    {
+        return;
+    }
+
+    const ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
+    UEnhancedInputLocalPlayerSubsystem* Subsystem =
+        ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(
+            LocalPlayer);
+    if (Subsystem == nullptr || Subsystem->HasMappingContext(PlayerMappingContext))
+    {
+        return;
+    }
+
+    Subsystem->AddMappingContext(PlayerMappingContext, 0);
+    UE_LOG(LogTemp, Display,
+        TEXT("Kashmir input mapping context activated: %s"),
+        *PlayerMappingContext->GetName());
 }
 
 void AKashmirCharacter::HandleTurnCompleted(
@@ -568,6 +763,8 @@ if (IsValid(CurrentLockOnTarget))
 }
 void AKashmirCharacter::Look(const FInputActionValue& Value)
 {
+    const FVector2D Input = Value.Get<FVector2D>();
+
     if (IsValid(CurrentLockOnTarget))
     {
         return;
@@ -585,8 +782,6 @@ void AKashmirCharacter::Look(const FInputActionValue& Value)
     {
         return;
     }
-
-    const FVector2D Input = Value.Get<FVector2D>();
 
     // LMB e RMB podem movimentar a câmera.
     AddControllerYawInput(Input.X);

@@ -51,6 +51,41 @@ bool FKashmirDefensePipeline::Resolve(
     {
         OutResult.Guard.StaminaBefore = Input.AvailableStamina;
         OutResult.Guard.StaminaAfter = Input.AvailableStamina;
+
+        FKashmirStaggerInput StaggerInput;
+        StaggerInput.Deflect = OutResult.Deflect;
+        StaggerInput.Guard = OutResult.Guard;
+        StaggerInput.Config = Input.StaggerConfig;
+
+        FKashmirStaggerResolver StaggerResolver;
+        if (!StaggerResolver.Resolve(
+                StaggerInput,
+                OutResult.Stagger,
+                OutReason))
+        {
+            OutResult = {};
+            return false;
+        }
+
+        OutResult.bStaggered = OutResult.Stagger.bStaggered;
+
+        FKashmirPhysicalReactionInput ReactionInput;
+        ReactionInput.Evidence = Evidence;
+        ReactionInput.Stagger = OutResult.Stagger;
+        ReactionInput.Config = Input.PhysicalReactionConfig;
+
+        FKashmirPhysicalReactionResolver ReactionResolver;
+        if (!ReactionResolver.Resolve(
+                ReactionInput,
+                OutResult.PhysicalReaction,
+                OutReason))
+        {
+            OutResult = {};
+            return false;
+        }
+
+        OutResult.bPhysicalReactionRequested =
+            OutResult.PhysicalReaction.bReactionRequested;
         return true;
     }
 
@@ -96,6 +131,41 @@ bool FKashmirDefensePipeline::Resolve(
 
     OutResult.bGuardBroken =
         OutResult.Guard.bGuardBroken;
+
+    FKashmirStaggerInput StaggerInput;
+    StaggerInput.Deflect = OutResult.Deflect;
+    StaggerInput.Guard = OutResult.Guard;
+    StaggerInput.Config = Input.StaggerConfig;
+
+    FKashmirStaggerResolver StaggerResolver;
+    if (!StaggerResolver.Resolve(
+            StaggerInput,
+            OutResult.Stagger,
+            OutReason))
+    {
+        OutResult = {};
+        return false;
+    }
+
+    OutResult.bStaggered = OutResult.Stagger.bStaggered;
+
+    FKashmirPhysicalReactionInput ReactionInput;
+    ReactionInput.Evidence = Evidence;
+    ReactionInput.Stagger = OutResult.Stagger;
+    ReactionInput.Config = Input.PhysicalReactionConfig;
+
+    FKashmirPhysicalReactionResolver ReactionResolver;
+    if (!ReactionResolver.Resolve(
+            ReactionInput,
+            OutResult.PhysicalReaction,
+            OutReason))
+    {
+        OutResult = {};
+        return false;
+    }
+
+    OutResult.bPhysicalReactionRequested =
+        OutResult.PhysicalReaction.bReactionRequested;
 
     return true;
 }

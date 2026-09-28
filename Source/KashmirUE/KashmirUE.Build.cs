@@ -16,5 +16,14 @@ public class KashmirUE : ModuleRules
             "JsonUtilities",
             "AnimGraphRuntime"
         });
+
+        if (Target.bBuildEditor)
+        {
+            PrivateDependencyModuleNames.AddRange(new string[]
+            {
+                "AnimGraph",
+                "UnrealEd"
+            });
+        }
     }
 }

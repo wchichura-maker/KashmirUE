@@ -36,6 +36,10 @@ struct KASHMIRUE_API FKashmirActionRequest
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float Intensity = 1.0f;
 
+    /** Normalized authored trajectory curvature. Zero represents a direct action. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float Curvature = 0.0f;
+
     bool IsValid(FString& OutReason) const;
 };
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Combat/KashmirDirectionalSwordComponent.h"
 #include "GameFramework/Character.h"
 #include "KashmirCharacter.generated.h"
 
@@ -10,6 +11,11 @@ class UInputMappingContext;
 class UAnimMontage;
 class UKashmirMovementConfig;
 class UKashmirTraversalComponent;
+class UKashmirSwordPresentationComponent;
+class UKashmirWeaponTraceComponent;
+class UKashmirCombatantComponent;
+class UStaticMeshComponent;
+class USceneComponent;
 class USpringArmComponent;
 class UKashmirLockOnTargetComponent;
 struct FInputActionValue;
@@ -47,6 +53,39 @@ public:
     UKashmirTraversalComponent* GetTraversalComponent() const
     { return TraversalComponent; }
 
+    UFUNCTION(BlueprintPure, Category="Combat|Directional Sword")
+    UKashmirSwordPresentationComponent* GetSwordPresentationComponent() const
+    { return SwordPresentationComponent; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Directional Sword")
+    UKashmirDirectionalSwordComponent* GetDirectionalSwordComponent() const
+    { return DirectionalSwordComponent; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Weapon")
+    UKashmirWeaponTraceComponent* GetWeaponTraceComponent() const
+    { return WeaponTraceComponent; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Weapon")
+    UStaticMeshComponent* GetSwordPrototypeMesh() const
+    { return SwordPrototypeMesh; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Weapon")
+    USceneComponent* GetSwordTraceBase() const { return SwordTraceBase; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Weapon")
+    USceneComponent* GetSwordTraceMid() const { return SwordTraceMid; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Weapon")
+    USceneComponent* GetSwordTraceTip() const { return SwordTraceTip; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|State")
+    UKashmirCombatantComponent* GetCombatantComponent() const
+    { return CombatantComponent; }
+
+    /** Logical combat input seam; physical bindings remain data-driven. */
+    UFUNCTION(BlueprintCallable, Category="Combat|Technique")
+    bool RequestTechniqueSlot(EKashmirTechniqueSlot Slot);
+
     UFUNCTION(BlueprintCallable, Category="Traversal")
     void RequestTraversalOrJump();
 
@@ -62,6 +101,7 @@ protected:
     void BeginWalk();
     void EndWalk();
     void RefreshMovementSpeed();
+    void ApplyPlayerMappingContext();
     bool TryStartTraversal();
 
     void BeginMouseTurnCharacter();
@@ -69,6 +109,8 @@ protected:
     void BeginLeftMouseCamera();
     void EndLeftMouseCamera();
     void UpdateMouseForwardMovement();
+    UFUNCTION()
+    void HandleSwordContact(const FKashmirDirectionalSwordContact& Contact);
 
     void RequestDodge();
     void ToggleLockOn();
@@ -131,6 +173,33 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Traversal")
     TObjectPtr<UKashmirTraversalComponent> TraversalComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Directional Sword")
+    TObjectPtr<UKashmirSwordPresentationComponent> SwordPresentationComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Directional Sword")
+    TObjectPtr<UKashmirDirectionalSwordComponent> DirectionalSwordComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Weapon")
+    TObjectPtr<UStaticMeshComponent> SwordPrototypeMesh;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Weapon")
+    TObjectPtr<USceneComponent> SwordTraceBase;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Weapon")
+    TObjectPtr<USceneComponent> SwordTraceMid;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Weapon")
+    TObjectPtr<USceneComponent> SwordTraceTip;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Weapon")
+    TObjectPtr<UKashmirWeaponTraceComponent> WeaponTraceComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|State")
+    TObjectPtr<UKashmirCombatantComponent> CombatantComponent;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Technique")
+    TObjectPtr<UKashmirWeaponCombatStyle> WeaponCombatStyle;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputMappingContext> PlayerMappingContext;
