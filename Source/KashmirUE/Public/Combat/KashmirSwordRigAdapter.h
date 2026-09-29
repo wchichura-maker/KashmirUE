@@ -7,27 +7,9 @@
 #include "KashmirSwordRigAdapter.generated.h"
 
 
-namespace KashmirSwordRigCurves
-{
-    KASHMIRUE_API extern const FName LeadHandOffsetX;
-    KASHMIRUE_API extern const FName LeadHandOffsetY;
-    KASHMIRUE_API extern const FName LeadHandOffsetZ;
-    KASHMIRUE_API extern const FName SupportHandOffsetX;
-    KASHMIRUE_API extern const FName SupportHandOffsetY;
-    KASHMIRUE_API extern const FName SupportHandOffsetZ;
-    KASHMIRUE_API extern const FName AimPitch;
-    KASHMIRUE_API extern const FName AimYaw;
-    KASHMIRUE_API extern const FName AimRoll;
-    KASHMIRUE_API extern const FName BodyLean;
-    KASHMIRUE_API extern const FName SwordPoseAlpha;
-    KASHMIRUE_API extern const FName LeftFootLockAlpha;
-    KASHMIRUE_API extern const FName RightFootLockAlpha;
-}
-
-
-/** Scalar presentation contract transported through animation curves. */
+/** Presentation values copied into public Control Rig inputs by the AnimGraph node. */
 USTRUCT(BlueprintType)
-struct KASHMIRUE_API FKashmirSwordRigCurveValues
+struct KASHMIRUE_API FKashmirSwordRigInputs
 {
     GENERATED_BODY()
 
@@ -60,6 +42,6 @@ class KASHMIRUE_API FKashmirSwordRigAdapter
 public:
     bool Resolve(
         const FKashmirSwordPoseResult& Pose,
-        FKashmirSwordRigCurveValues& OutCurves,
+        FKashmirSwordRigInputs& OutInputs,
         FString& OutReason) const;
 };

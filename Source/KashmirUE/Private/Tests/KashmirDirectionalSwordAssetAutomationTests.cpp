@@ -5,8 +5,12 @@
 #include "Combat/KashmirCombatantComponent.h"
 #include "Combat/KashmirWeaponTraceComponent.h"
 #include "Animation/AnimBlueprint.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "AnimGraphNode_Slot.h"
 #include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
 #include "EnhancedActionKeyMapping.h"
 #include "InputAction.h"
 #include "InputCoreTypes.h"
@@ -14,6 +18,84 @@
 #include "KashmirCharacter.h"
 #include "Misc/AutomationTest.h"
 #include "UObject/UnrealType.h"
+
+
+namespace
+{
+    UEdGraphPin* FindPosePin(UEdGraphNode* Node, EEdGraphPinDirection Direction)
+    {
+        if (Node == nullptr)
+        {
+            return nullptr;
+        }
+
+        for (UEdGraphPin* Pin : Node->Pins)
+        {
+            if (Pin != nullptr && Pin->Direction == Direction &&
+                Pin->PinType.PinCategory == TEXT("struct") &&
+                Pin->PinType.PinSubCategoryObject.IsValid() &&
+                Pin->PinType.PinSubCategoryObject->GetName() == TEXT("PoseLink"))
+            {
+                return Pin;
+            }
+        }
+        return nullptr;
+    }
+
+    bool HasDirectPoseLink(UEdGraphNode* From, UEdGraphNode* To)
+    {
+        UEdGraphPin* Output = FindPosePin(From, EGPD_Output);
+        UEdGraphPin* Input = FindPosePin(To, EGPD_Input);
+        return Output != nullptr && Input != nullptr && Output->LinkedTo.Contains(Input);
+    }
+
+    bool HasDirectValueLink(
+        UEdGraphNode* TargetNode,
+        FName TargetPinName,
+        FName SourcePinName)
+    {
+        const UEdGraphPin* TargetPin = TargetNode != nullptr
+            ? TargetNode->FindPin(TargetPinName, EGPD_Input) : nullptr;
+        if (TargetPin == nullptr || TargetPin->LinkedTo.Num() != 1)
+        {
+            return false;
+        }
+        const UEdGraphPin* SourcePin = TargetPin->LinkedTo[0];
+        return SourcePin != nullptr &&
+            SourcePin->Direction == EGPD_Output &&
+            SourcePin->PinName == SourcePinName &&
+            SourcePin->GetOwningNode() != nullptr &&
+            SourcePin->GetOwningNode()->GetClass()->GetName() == TEXT("K2Node_VariableGet");
+    }
+
+    TMap<FName, FName> ReadControlRigInputMapping(UEdGraphNode* ControlRigNode)
+    {
+        TMap<FName, FName> Result;
+        const FStructProperty* NodeProperty = ControlRigNode != nullptr
+            ? FindFProperty<FStructProperty>(ControlRigNode->GetClass(), TEXT("Node"))
+            : nullptr;
+        const FMapProperty* MapProperty = NodeProperty != nullptr
+            ? FindFProperty<FMapProperty>(NodeProperty->Struct, TEXT("InputMapping"))
+            : nullptr;
+        if (MapProperty == nullptr)
+        {
+            return Result;
+        }
+
+        void* NodeValue = NodeProperty->ContainerPtrToValuePtr<void>(ControlRigNode);
+        FScriptMapHelper MapHelper(MapProperty, MapProperty->ContainerPtrToValuePtr<void>(NodeValue));
+        for (int32 Index = 0; Index < MapHelper.GetMaxIndex(); ++Index)
+        {
+            if (MapHelper.IsValidIndex(Index))
+            {
+                const FName* Key = reinterpret_cast<const FName*>(MapHelper.GetKeyPtr(Index));
+                const FName* Value = reinterpret_cast<const FName*>(MapHelper.GetValuePtr(Index));
+                Result.Add(*Key, *Value);
+            }
+        }
+        return Result;
+    }
+}
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -59,10 +141,22 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
 
     for (const FKashmirSwordAuthoredAction& Action : Profile->Actions)
     {
+        UAnimMontage* Montage = Action.Montage.LoadSynchronous();
         TestNotNull(
             *FString::Printf(TEXT("Montage loads for %s"),
                 *Action.ActionId.ToString()),
-            Action.Montage.LoadSynchronous());
+            Montage);
+        if (Montage != nullptr)
+        {
+            TestTrue(
+                *FString::Printf(TEXT("%s montage remains on DefaultSlot"),
+                    *Action.ActionId.ToString()),
+                Montage->SlotAnimTracks.ContainsByPredicate(
+                    [](const FSlotAnimationTrack& Track)
+                    {
+                        return Track.SlotName == TEXT("DefaultSlot");
+                    }));
+        }
         TestTrue(
             *FString::Printf(TEXT("%s uses contact delivery"),
                 *Action.ActionId.ToString()),
@@ -166,7 +260,21 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
     TestNotNull(TEXT("Player animation Blueprint loads"), AnimBlueprint);
     if (AnimBlueprint != nullptr)
     {
+        const UAnimInstance* AnimDefaults = AnimBlueprint->GeneratedClass != nullptr
+            ? Cast<UAnimInstance>(AnimBlueprint->GeneratedClass->GetDefaultObject())
+            : nullptr;
+        TestNotNull(TEXT("Player AnimInstance defaults load"), AnimDefaults);
+        if (AnimDefaults != nullptr)
+        {
+            TestEqual(TEXT("AnimBP remains Root Motion From Montages Only"),
+                AnimDefaults->RootMotionMode.GetValue(),
+                ERootMotionMode::RootMotionFromMontagesOnly);
+        }
+
         TArray<UAnimGraphNode_Slot*> SlotNodes;
+        UEdGraphNode* ControlRigNode = nullptr;
+        UEdGraphNode* StateMachineNode = nullptr;
+        UEdGraphNode* RootNode = nullptr;
         TArray<UEdGraph*> Graphs;
         AnimBlueprint->GetAllGraphs(Graphs);
         for (UEdGraph* Graph : Graphs)
@@ -174,15 +282,68 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
             if (Graph != nullptr)
             {
                 Graph->GetNodesOfClass(SlotNodes);
+                for (UEdGraphNode* Node : Graph->Nodes)
+                {
+                    if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_ControlRig"))
+                    {
+                        ControlRigNode = Node;
+                    }
+                    else if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_StateMachine"))
+                    {
+                        StateMachineNode = Node;
+                    }
+                    else if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_Root"))
+                    {
+                        RootNode = Node;
+                    }
+                }
             }
         }
-        TestTrue(TEXT("AnimBP evaluates the DefaultSlot montage track"),
-            SlotNodes.ContainsByPredicate(
-                [](const UAnimGraphNode_Slot* Node)
-                {
-                    return Node != nullptr &&
-                        Node->Node.SlotName == TEXT("DefaultSlot");
-                }));
+        UAnimGraphNode_Slot* DefaultSlot = nullptr;
+        for (UAnimGraphNode_Slot* Node : SlotNodes)
+        {
+            if (Node != nullptr && Node->Node.SlotName == TEXT("DefaultSlot"))
+            {
+                DefaultSlot = Node;
+                break;
+            }
+        }
+        TestNotNull(TEXT("AnimBP evaluates the DefaultSlot montage track"), DefaultSlot);
+        TestNotNull(TEXT("AnimBP contains the sword Control Rig node"), ControlRigNode);
+        TestTrue(TEXT("Locomotion state machine feeds DefaultSlot"),
+            HasDirectPoseLink(StateMachineNode, DefaultSlot));
+        TestTrue(TEXT("Sword Control Rig evaluates downstream of DefaultSlot"),
+            HasDirectPoseLink(DefaultSlot, ControlRigNode));
+        TestTrue(TEXT("Post-montage Control Rig feeds the final output pose"),
+            HasDirectPoseLink(ControlRigNode, RootNode));
+
+        const TMap<FName, FName> InputMapping = ReadControlRigInputMapping(ControlRigNode);
+        TestEqual(TEXT("Control Rig no longer depends on animation-curve mappings"),
+            InputMapping.Num(), 0);
+
+        static const TPair<FName, FName> DirectBindings[] =
+        {
+            { TEXT("LeadHandOffsetX"), TEXT("SwordLeadHandOffsetX") },
+            { TEXT("LeadHandOffsetY"), TEXT("SwordLeadHandOffsetY") },
+            { TEXT("LeadHandOffsetZ"), TEXT("SwordLeadHandOffsetZ") },
+            { TEXT("SupportHandOffsetX"), TEXT("SwordSupportHandOffsetX") },
+            { TEXT("SupportHandOffsetY"), TEXT("SwordSupportHandOffsetY") },
+            { TEXT("SupportHandOffsetZ"), TEXT("SwordSupportHandOffsetZ") },
+            { TEXT("AimPitch"), TEXT("SwordAimPitch") },
+            { TEXT("AimYaw"), TEXT("SwordAimYaw") },
+            { TEXT("AimRoll"), TEXT("SwordAimRoll") },
+            { TEXT("BodyLean"), TEXT("SwordBodyLean") },
+            { TEXT("SwordPoseAlpha"), TEXT("SwordPoseAlpha") },
+            { TEXT("LeftFootLockAlpha"), TEXT("SwordLeftFootLockAlpha") },
+            { TEXT("RightFootLockAlpha"), TEXT("SwordRightFootLockAlpha") }
+        };
+        for (const TPair<FName, FName>& Binding : DirectBindings)
+        {
+            TestTrue(
+                *FString::Printf(TEXT("Control Rig %s consumes AnimInstance %s directly"),
+                    *Binding.Key.ToString(), *Binding.Value.ToString()),
+                HasDirectValueLink(ControlRigNode, Binding.Key, Binding.Value));
+        }
     }
 
     return true;

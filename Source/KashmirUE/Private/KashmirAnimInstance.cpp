@@ -21,7 +21,7 @@ void UKashmirAnimInstance::NativeUpdateAnimation(
     Super::NativeUpdateAnimation(DeltaSeconds);
 
     SwordPose = {};
-    SwordRigCurves = {};
+    ResetSwordRigInputs();
 
     if (Character == nullptr)
     {
@@ -33,7 +33,6 @@ void UKashmirAnimInstance::NativeUpdateAnimation(
 
     if (Character == nullptr)
     {
-        PublishSwordRigCurves();
         return;
     }
 
@@ -42,7 +41,6 @@ void UKashmirAnimInstance::NativeUpdateAnimation(
 
     if (Movement == nullptr)
     {
-        PublishSwordRigCurves();
         return;
     }
 
@@ -93,30 +91,85 @@ void UKashmirAnimInstance::UpdateSwordPresentation()
         ? SwordPresentation->GetCurrentPose()
         : FKashmirSwordPoseResult{};
 
-    FKashmirSwordRigAdapter Adapter;
-    FString Reason;
-    if (!Adapter.Resolve(SwordPose, SwordRigCurves, Reason))
-    {
-        SwordRigCurves = {};
-    }
-
-    PublishSwordRigCurves();
+    ResolveSwordRigInputsFromCurrentPose();
 }
 
 
-void UKashmirAnimInstance::PublishSwordRigCurves()
+void UKashmirAnimInstance::ResolveSwordRigInputsFromCurrentPose()
 {
-    AddCurveValue(KashmirSwordRigCurves::LeadHandOffsetX, SwordRigCurves.LeadHandOffset.X);
-    AddCurveValue(KashmirSwordRigCurves::LeadHandOffsetY, SwordRigCurves.LeadHandOffset.Y);
-    AddCurveValue(KashmirSwordRigCurves::LeadHandOffsetZ, SwordRigCurves.LeadHandOffset.Z);
-    AddCurveValue(KashmirSwordRigCurves::SupportHandOffsetX, SwordRigCurves.SupportHandOffset.X);
-    AddCurveValue(KashmirSwordRigCurves::SupportHandOffsetY, SwordRigCurves.SupportHandOffset.Y);
-    AddCurveValue(KashmirSwordRigCurves::SupportHandOffsetZ, SwordRigCurves.SupportHandOffset.Z);
-    AddCurveValue(KashmirSwordRigCurves::AimPitch, SwordRigCurves.AimRotation.Pitch);
-    AddCurveValue(KashmirSwordRigCurves::AimYaw, SwordRigCurves.AimRotation.Yaw);
-    AddCurveValue(KashmirSwordRigCurves::AimRoll, SwordRigCurves.AimRotation.Roll);
-    AddCurveValue(KashmirSwordRigCurves::BodyLean, SwordRigCurves.BodyLeanDegrees);
-    AddCurveValue(KashmirSwordRigCurves::SwordPoseAlpha, SwordRigCurves.SwordPoseAlpha);
-    AddCurveValue(KashmirSwordRigCurves::LeftFootLockAlpha, SwordRigCurves.LeftFootLockAlpha);
-    AddCurveValue(KashmirSwordRigCurves::RightFootLockAlpha, SwordRigCurves.RightFootLockAlpha);
+#if !UE_BUILD_SHIPPING
+    if (bForceNeutralSwordRigInputs)
+    {
+        ResetSwordRigInputs();
+        return;
+    }
+#endif
+
+    FKashmirSwordRigInputs Inputs;
+    FKashmirSwordRigAdapter Adapter;
+    FString Reason;
+    if (!Adapter.Resolve(SwordPose, Inputs, Reason))
+    {
+        Inputs = {};
+    }
+    ApplySwordRigInputs(Inputs);
+}
+
+
+void UKashmirAnimInstance::SetForceNeutralSwordRigInputs(bool bForceNeutral)
+{
+#if !UE_BUILD_SHIPPING
+    bForceNeutralSwordRigInputs = bForceNeutral;
+#else
+    bForceNeutralSwordRigInputs = false;
+#endif
+    ResolveSwordRigInputsFromCurrentPose();
+}
+
+
+bool UKashmirAnimInstance::IsForceNeutralSwordRigInputsEnabled() const
+{
+#if !UE_BUILD_SHIPPING
+    return bForceNeutralSwordRigInputs;
+#else
+    return false;
+#endif
+}
+
+
+FKashmirSwordRigInputs UKashmirAnimInstance::GetSwordRigInputs() const
+{
+    FKashmirSwordRigInputs Inputs;
+    Inputs.LeadHandOffset = FVector(SwordLeadHandOffsetX, SwordLeadHandOffsetY, SwordLeadHandOffsetZ);
+    Inputs.SupportHandOffset = FVector(SwordSupportHandOffsetX, SwordSupportHandOffsetY, SwordSupportHandOffsetZ);
+    Inputs.AimRotation = FRotator(SwordAimPitch, SwordAimYaw, SwordAimRoll);
+    Inputs.BodyLeanDegrees = SwordBodyLean;
+    Inputs.SwordPoseAlpha = SwordPoseAlpha;
+    Inputs.LeftFootLockAlpha = SwordLeftFootLockAlpha;
+    Inputs.RightFootLockAlpha = SwordRightFootLockAlpha;
+    return Inputs;
+}
+
+
+void UKashmirAnimInstance::ApplySwordRigInputs(const FKashmirSwordRigInputs& Inputs)
+{
+    SwordLeadHandOffsetX = Inputs.LeadHandOffset.X;
+    SwordLeadHandOffsetY = Inputs.LeadHandOffset.Y;
+    SwordLeadHandOffsetZ = Inputs.LeadHandOffset.Z;
+    SwordSupportHandOffsetX = Inputs.SupportHandOffset.X;
+    SwordSupportHandOffsetY = Inputs.SupportHandOffset.Y;
+    SwordSupportHandOffsetZ = Inputs.SupportHandOffset.Z;
+    SwordAimPitch = Inputs.AimRotation.Pitch;
+    SwordAimYaw = Inputs.AimRotation.Yaw;
+    SwordAimRoll = Inputs.AimRotation.Roll;
+    SwordBodyLean = Inputs.BodyLeanDegrees;
+    SwordPoseAlpha = Inputs.SwordPoseAlpha;
+    SwordLeftFootLockAlpha = Inputs.LeftFootLockAlpha;
+    SwordRightFootLockAlpha = Inputs.RightFootLockAlpha;
+}
+
+
+void UKashmirAnimInstance::ResetSwordRigInputs()
+{
+    ApplySwordRigInputs({});
 }

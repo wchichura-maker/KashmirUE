@@ -3,7 +3,7 @@
 
 namespace
 {
-    bool IsFiniteVector(const FVector& Value)
+    bool IsFinitePoseVector(const FVector& Value)
     {
         return
             FMath::IsFinite(Value.X) &&
@@ -11,7 +11,7 @@ namespace
             FMath::IsFinite(Value.Z);
     }
 
-    bool IsUnitInterval(float Value)
+    bool IsPoseUnitInterval(float Value)
     {
         return FMath::IsFinite(Value) && Value >= 0.0f && Value <= 1.0f;
     }
@@ -73,8 +73,8 @@ bool FKashmirSwordPoseConfig::IsValid(FString& OutReason) const
 {
     OutReason.Reset();
 
-    if (!IsFiniteVector(LeadHandOffsetAtFullIntensity) ||
-        !IsFiniteVector(SupportHandOffsetAtFullIntensity))
+    if (!IsFinitePoseVector(LeadHandOffsetAtFullIntensity) ||
+        !IsFinitePoseVector(SupportHandOffsetAtFullIntensity))
     {
         OutReason = TEXT("sword pose hand offsets must be finite");
         return false;
@@ -92,9 +92,9 @@ bool FKashmirSwordPoseConfig::IsValid(FString& OutReason) const
         return false;
     }
 
-    if (!IsUnitInterval(StartupFootLockAlpha) ||
-        !IsUnitInterval(ActiveFootLockAlpha) ||
-        !IsUnitInterval(RecoveryFootLockAlpha))
+    if (!IsPoseUnitInterval(StartupFootLockAlpha) ||
+        !IsPoseUnitInterval(ActiveFootLockAlpha) ||
+        !IsPoseUnitInterval(RecoveryFootLockAlpha))
     {
         OutReason = TEXT("sword pose foot lock weights must be between zero and one");
         return false;

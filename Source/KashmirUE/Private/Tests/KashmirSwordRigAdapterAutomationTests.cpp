@@ -17,11 +17,11 @@ bool FKashmirSwordRigAdapterMatrixTest::RunTest(const FString& Parameters)
 {
     FKashmirSwordRigAdapter Adapter;
     FKashmirSwordPoseResult Pose;
-    FKashmirSwordRigCurveValues Curves;
+    FKashmirSwordRigInputs Inputs;
     FString Reason;
 
-    TestTrue(TEXT("Disabled pose resolves"), Adapter.Resolve(Pose, Curves, Reason));
-    TestEqual(TEXT("Disabled pose keeps rig neutral"), Curves.SwordPoseAlpha, 0.0f);
+    TestTrue(TEXT("Disabled pose resolves"), Adapter.Resolve(Pose, Inputs, Reason));
+    TestEqual(TEXT("Disabled pose keeps rig neutral"), Inputs.SwordPoseAlpha, 0.0f);
 
     Pose.bEnabled = true;
     Pose.PhaseAlpha = 0.5f;
@@ -32,14 +32,14 @@ bool FKashmirSwordRigAdapterMatrixTest::RunTest(const FString& Parameters)
     Pose.LeftFootLockAlpha = 0.75f;
     Pose.RightFootLockAlpha = 0.5f;
 
-    TestTrue(TEXT("Enabled pose resolves"), Adapter.Resolve(Pose, Curves, Reason));
-    TestEqual(TEXT("Lead hand offset is preserved"), Curves.LeadHandOffset, Pose.LeadHandOffset);
-    TestEqual(TEXT("Support hand offset is preserved"), Curves.SupportHandOffset, Pose.SupportHandOffset);
-    TestEqual(TEXT("Aim rotation is preserved"), Curves.AimRotation, Pose.AimRotation);
-    TestEqual(TEXT("Body lean is preserved"), Curves.BodyLeanDegrees, 7.0f);
-    TestEqual(TEXT("Enabled pose activates rig once"), Curves.SwordPoseAlpha, 1.0f);
-    TestEqual(TEXT("Left foot weight is preserved"), Curves.LeftFootLockAlpha, 0.75f);
-    TestEqual(TEXT("Right foot weight is preserved"), Curves.RightFootLockAlpha, 0.5f);
+    TestTrue(TEXT("Enabled pose resolves"), Adapter.Resolve(Pose, Inputs, Reason));
+    TestEqual(TEXT("Lead hand offset is preserved"), Inputs.LeadHandOffset, Pose.LeadHandOffset);
+    TestEqual(TEXT("Support hand offset is preserved"), Inputs.SupportHandOffset, Pose.SupportHandOffset);
+    TestEqual(TEXT("Aim rotation is preserved"), Inputs.AimRotation, Pose.AimRotation);
+    TestEqual(TEXT("Body lean is preserved"), Inputs.BodyLeanDegrees, 7.0f);
+    TestEqual(TEXT("Enabled pose activates rig once"), Inputs.SwordPoseAlpha, 1.0f);
+    TestEqual(TEXT("Left foot weight is preserved"), Inputs.LeftFootLockAlpha, 0.75f);
+    TestEqual(TEXT("Right foot weight is preserved"), Inputs.RightFootLockAlpha, 0.5f);
     return true;
 }
 
@@ -59,16 +59,16 @@ bool FKashmirSwordRigAdapterRejectInvalidTest::RunTest(const FString& Parameters
     Pose.PhaseAlpha = 1.0f;
     Pose.LeftFootLockAlpha = 1.0f;
     Pose.RightFootLockAlpha = 1.0f;
-    FKashmirSwordRigCurveValues Curves;
+    FKashmirSwordRigInputs Inputs;
     FString Reason;
 
     Pose.LeadHandOffset.X = std::numeric_limits<double>::quiet_NaN();
-    TestFalse(TEXT("Non-finite hand target is rejected"), Adapter.Resolve(Pose, Curves, Reason));
-    TestEqual(TEXT("Rejected pose resets rig"), Curves.SwordPoseAlpha, 0.0f);
+    TestFalse(TEXT("Non-finite hand target is rejected"), Adapter.Resolve(Pose, Inputs, Reason));
+    TestEqual(TEXT("Rejected pose resets rig"), Inputs.SwordPoseAlpha, 0.0f);
 
     Pose.LeadHandOffset = FVector::ZeroVector;
     Pose.LeftFootLockAlpha = 1.1f;
-    TestFalse(TEXT("Out-of-range foot lock is rejected"), Adapter.Resolve(Pose, Curves, Reason));
+    TestFalse(TEXT("Out-of-range foot lock is rejected"), Adapter.Resolve(Pose, Inputs, Reason));
     return true;
 }
 
