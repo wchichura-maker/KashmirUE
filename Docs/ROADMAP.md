@@ -170,21 +170,46 @@ Pendente para concluir UE2.1:
   `IMPLEMENTED / VALIDATED`;
   Player, AI, Replay e futura Network convergem conceitualmente no mesmo
   contrato e `ActionRuntime` existente.
-- **UE2.3.5 — Technique Slots:** contrato lógico Slot1..Slot5 `IMPLEMENTED`;
-  bindings físicos jogáveis, configuração rebindável e validação em PIE
-  permanecem `PENDING`. O mapping ativo MMB → gesto foi removido.
-- **UE2.3.6 — Sword Grammar:** perfil atual e seus 16 ataques foram preservados;
-  a ponte TechniqueRequest → ação autorada da espada foi validada por Automation.
-  Data Assets de produção, classificação dos 16 ataques como Techniques,
-  animation variants ou redundâncias, Combo/Transition Graph e gate jogável
-  por TechniqueSlot permanecem `PENDING`. Montages atuais devem ser preservados
-  inicialmente; `Technique != Animation`.
+- **UE2.3.5 — Technique Slots:** `IMPLEMENTED / AUTOMATION VALIDATED`.
+  `IA_TechniqueSlot1..5` são ações booleanas rebindáveis, com baseline físico
+  temporário `1..5`; o Character converte input somente em
+  `EKashmirTechniqueSlot`, sem conhecer teclas físicas ou resolver Sword.
+  O mapping ativo MMB → gesto continua removido. Validação física/visual em PIE
+  permanece `PENDING`.
+- **UE2.3.6 — Sword Grammar:** `PLAYABLE BASELINE IMPLEMENTED / AUTOMATION
+  VALIDATED / PIE PENDING`. Inspeção de apresentação e observação humana
+  confirmaram que Slot1 e o antigo Slot5 eram perceptualmente duplicados:
+  ambos usavam `AM_KashmirSword_HorizontalA`, a mesma sequência, timeline,
+  pose config e trace window. A baseline ativa agora possui quatro Techniques
+  com quatro montages distintos; Slot5 permanece reservado e sem binding.
+  Os 16 ActionIds continuam preservados no perfil legado como fonte/variantes.
+  O Slot2 foi reclassificado de
+  `Technique.Sword.Horizontal.RightToLeft` para
+  `Technique.Sword.Diagonal.Rising.RightToLeft`, preservando logical slot,
+  `Sword.Direct.Left`, direção `RightToLeft`, montage
+  `AM_KashmirSword_HorizontalB`, runtime, trace, damage e timing. A Base Motion
+  define a família cinemática principal; variação procedural deve permanecer
+  semanticamente compatível com essa família.
+  Thrust permanece `PENDING ASSET`; Combo/Transition Graph e polish visual
+  continuam `PENDING`. `Technique != Animation`.
 - **UE2.3.7 — Second Weapon Grammar:** gramática conceitual de Spear validada
   como `REFERENCE VALIDATION` por Automation, sem animação final, conteúdo
   jogável ou branch específico no core. Spear jogável permanece `PENDING`.
-- **UE2.3.8 — Playable Weapon Grammar:** `PENDING`. Gate de conclusão:
-  `TechniqueSlot -> correct Technique -> montage -> weapon sweep -> HitEvidence
-  -> defense/damage -> CombatResult`.
+- **UE2.3.8 — Playable Weapon Grammar:** `BASELINE AUTOMATION VALIDATED` para
+  Sword. O fixture transitório prova `TechniqueSlot -> correct Technique ->
+  ActionRuntime -> montage data -> physical weapon sweep -> HitEvidence ->
+  defense/damage -> CombatResult -> persistent health application`, sem
+  dependência de mouse gesture. O gate físico/visual em PIE e uma segunda arma
+  jogável permanecem `PENDING`; portanto Weapon Combat Grammar não está completa.
+- **UE2.3.9 — Post-Montage Sword Presentation / Control Rig Integration:**
+  `IMPLEMENTED / AUTOMATION VALIDATED / PIE PENDING`. O AnimGraph agora avalia
+  `SM_Locomotion -> DefaultSlot -> CR_KashmirSword -> Output Pose`. Os 13 valores
+  de apresentação são snapshots escalares transitórios no
+  `UKashmirAnimInstance`, ligados diretamente aos inputs expostos do Control Rig;
+  a dependência de Attribute Curves foi removida porque o engine reconstruía o
+  container após `NativeUpdateAnimation()`. `DefaultSlot`, montage playback,
+  WeaponTrace e autoridade de combate permanecem inalterados. A aceitação
+  visual de pose, clipping e contato ainda exige Aura/PIE.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova

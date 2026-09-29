@@ -410,3 +410,30 @@
 - **Technique:** ação resolvida para o slot pelo `WeaponCombatStyle` e pelo
   contexto atual. A regra é `TechniqueSlot1 -> current style binding ->
   resolved Technique`, nunca `Slot1 = CrossSlash` de forma fixa.
+
+## UE-0024 — Base Motion define a família cinemática da Technique
+
+- **Status da decisão:** **DECIDED** em 2026-09-29.
+- **Status técnico:** **IMPLEMENTED / AUTOMATION VALIDATED** para o Slot2 da
+  baseline ativa de Sword.
+- A Base Motion define a família cinemática principal da apresentação de uma
+  Technique. A identidade completa da Technique não se reduz à Animation, mas
+  sua apresentação deve permanecer semanticamente compatível com a cinemática
+  da animação-base.
+- Control Rig e apresentação procedural podem variar amplitude, altura,
+  inclinação, offsets de mão, body lean, abertura, postura e pequenas variações
+  direcionais dentro de uma família compatível. Não devem reclassificar uma
+  base para uma família incompatível, como `Horizontal -> Thrust` ou
+  `Rising -> Horizontal` puro.
+- `TechniqueFamily` é a autoridade atual para a família cinemática autorada.
+  `AttackShape` continua descrevendo a forma física ampla (`Slash`, `Thrust`,
+  `Sweep`, etc.); não será expandido ou duplicado somente para representar
+  orientação cinemática.
+- O Slot2 de Sword é
+  `Technique.Sword.Diagonal.Rising.RightToLeft`, com
+  `TechniqueFamily=DiagonalRising`, `AttackDirection=RightToLeft` e
+  `AttackShape=Slash`.
+- O Slot2 preserva `ActionId=Sword.Direct.Left` como identificador operacional
+  legado, além do logical slot, `AM_KashmirSword_HorizontalB`, ActionRuntime,
+  WeaponTrace, damage e timing. Renomear o ActionId ampliaria o contrato sem
+  benefício para esta correção semântica.
