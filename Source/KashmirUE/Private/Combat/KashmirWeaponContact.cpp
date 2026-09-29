@@ -2,7 +2,7 @@
 
 namespace
 {
-    bool IsFiniteVector(
+    bool IsFiniteContactVector(
         const FVector& Vector)
     {
         return
@@ -23,7 +23,7 @@ bool FKashmirWeaponContactPoint::IsValid(
         return false;
     }
 
-    if (!IsFiniteVector(Position))
+    if (!IsFiniteContactVector(Position))
     {
         OutReason =
             TEXT("weapon contact point position must be finite");

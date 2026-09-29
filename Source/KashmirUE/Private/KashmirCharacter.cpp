@@ -25,6 +25,8 @@
 #include "Combat/KashmirCombatantComponent.h"
 #include "Combat/KashmirDirectionalMeleeResolver.h"
 #include "Combat/KashmirHitRegionMap.h"
+#include "Combat/KashmirHurtboxComponent.h"
+#include "Combat/KashmirHurtboxProfile.h"
 
 AKashmirCharacter::AKashmirCharacter()
 {
@@ -66,9 +68,10 @@ AKashmirCharacter::AKashmirCharacter()
 
     SwordPrototypeMesh = CreateDefaultSubobject<UStaticMeshComponent>(
         TEXT("SwordPrototypeMesh"));
-    SwordPrototypeMesh->SetupAttachment(GetMesh(), TEXT("hand_r"));
+    // Weapon_R is the grip socket: blade axis and palm offset live on the socket.
+    SwordPrototypeMesh->SetupAttachment(GetMesh(), TEXT("Weapon_R"));
     SwordPrototypeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    SwordPrototypeMesh->SetRelativeLocation(FVector(45.0f, 0.0f, 0.0f));
+    SwordPrototypeMesh->SetRelativeLocation(FVector::ZeroVector);
     SwordPrototypeMesh->SetRelativeScale3D(FVector(0.80f, 0.035f, 0.035f));
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> SwordPrototypeAsset(
@@ -81,7 +84,7 @@ AKashmirCharacter::AKashmirCharacter()
     SwordTraceBase = CreateDefaultSubobject<USceneComponent>(
         TEXT("SwordTraceBase"));
     SwordTraceBase->SetupAttachment(SwordPrototypeMesh);
-    SwordTraceBase->SetRelativeLocation(FVector(-40.0f, 0.0f, 0.0f));
+    SwordTraceBase->SetRelativeLocation(FVector(-50.0f, 0.0f, 0.0f));
 
     SwordTraceMid = CreateDefaultSubobject<USceneComponent>(
         TEXT("SwordTraceMid"));
@@ -90,7 +93,7 @@ AKashmirCharacter::AKashmirCharacter()
     SwordTraceTip = CreateDefaultSubobject<USceneComponent>(
         TEXT("SwordTraceTip"));
     SwordTraceTip->SetupAttachment(SwordPrototypeMesh);
-    SwordTraceTip->SetRelativeLocation(FVector(40.0f, 0.0f, 0.0f));
+    SwordTraceTip->SetRelativeLocation(FVector(50.0f, 0.0f, 0.0f));
 
     WeaponTraceComponent = CreateDefaultSubobject<UKashmirWeaponTraceComponent>(
         TEXT("WeaponTraceComponent"));
@@ -299,6 +302,31 @@ if (WalkAction)
             &AKashmirCharacter::EndLeftMouseCamera
         );
     }
+    if (TechniqueSlot1Action)
+    {
+        Input->BindAction(TechniqueSlot1Action, ETriggerEvent::Started,
+            this, &AKashmirCharacter::RequestTechniqueSlot1);
+    }
+    if (TechniqueSlot2Action)
+    {
+        Input->BindAction(TechniqueSlot2Action, ETriggerEvent::Started,
+            this, &AKashmirCharacter::RequestTechniqueSlot2);
+    }
+    if (TechniqueSlot3Action)
+    {
+        Input->BindAction(TechniqueSlot3Action, ETriggerEvent::Started,
+            this, &AKashmirCharacter::RequestTechniqueSlot3);
+    }
+    if (TechniqueSlot4Action)
+    {
+        Input->BindAction(TechniqueSlot4Action, ETriggerEvent::Started,
+            this, &AKashmirCharacter::RequestTechniqueSlot4);
+    }
+    if (TechniqueSlot5Action)
+    {
+        Input->BindAction(TechniqueSlot5Action, ETriggerEvent::Started,
+            this, &AKashmirCharacter::RequestTechniqueSlot5);
+    }
 }
 
 
@@ -318,6 +346,48 @@ void AKashmirCharacter::HandleSwordContact(
         return;
     }
 
+    /*
+     * Dedicated Kashmir hurtboxes are the authoritative combat anatomy.
+     *
+     * A contact that lands on one reports the bone that defines it, which
+     * the target's hit region map then resolves into a semantic HitRegion.
+     * Contacts on the skeletal mesh physics bodies keep resolving exactly
+     * as before, so the two anatomies coexist without a second pipeline.
+     */
+    FKashmirDirectionalSwordContact ResolvedContact =
+        Contact;
+
+    if (const UKashmirHurtboxComponent* TargetHurtboxes =
+        TargetActor->FindComponentByClass<UKashmirHurtboxComponent>())
+    {
+        FName HurtboxId;
+        FGameplayTag HurtboxRegion;
+
+        if (TargetHurtboxes->ResolveHitComponent(
+                ResolvedContact.TraceHit.Hit.GetComponent(),
+                HurtboxId,
+                HurtboxRegion))
+        {
+            const FKashmirHurtboxDefinition* HurtboxDefinition =
+                TargetHurtboxes->FindDefinitionForComponent(
+                    ResolvedContact.TraceHit.Hit.GetComponent());
+
+            if (HurtboxDefinition != nullptr)
+            {
+                ResolvedContact.TraceHit.Hit.BoneName =
+                    HurtboxDefinition->BoneName;
+
+                UE_LOG(LogTemp, Display,
+                    TEXT(
+                        "Hurtbox contact id=%s region=%s bone=%s"
+                    ),
+                    *HurtboxId.ToString(),
+                    *HurtboxRegion.ToString(),
+                    *HurtboxDefinition->BoneName.ToString());
+            }
+        }
+    }
+
     FKashmirDirectionalMeleeInput Input;
     Input.InstigatorId = CombatantComponent->GetEntityId();
     Input.TargetId = TargetCombatant->GetEntityId();
@@ -328,7 +398,7 @@ void AKashmirCharacter::HandleSwordContact(
     FKashmirDirectionalMeleeResolver Resolver;
     FKashmirDirectionalMeleeResult Result;
     FString Reason;
-    if (!Resolver.Resolve(Contact, Input, Result, Reason))
+    if (!Resolver.Resolve(ResolvedContact, Input, Result, Reason))
     {
         UE_LOG(LogTemp, Verbose,
             TEXT("Directional melee contact rejected: %s"), *Reason);
@@ -381,6 +451,36 @@ bool AKashmirCharacter::RequestTechniqueSlot(
         static_cast<int32>(Slot),
         *DirectionalSwordComponent->GetRuntimeState().ActionId.ToString());
     return true;
+}
+
+
+void AKashmirCharacter::RequestTechniqueSlot1()
+{
+    RequestTechniqueSlot(EKashmirTechniqueSlot::TechniqueSlot1);
+}
+
+
+void AKashmirCharacter::RequestTechniqueSlot2()
+{
+    RequestTechniqueSlot(EKashmirTechniqueSlot::TechniqueSlot2);
+}
+
+
+void AKashmirCharacter::RequestTechniqueSlot3()
+{
+    RequestTechniqueSlot(EKashmirTechniqueSlot::TechniqueSlot3);
+}
+
+
+void AKashmirCharacter::RequestTechniqueSlot4()
+{
+    RequestTechniqueSlot(EKashmirTechniqueSlot::TechniqueSlot4);
+}
+
+
+void AKashmirCharacter::RequestTechniqueSlot5()
+{
+    RequestTechniqueSlot(EKashmirTechniqueSlot::TechniqueSlot5);
 }
 
 

@@ -9,12 +9,88 @@
 #include "Components/SphereComponent.h"
 
 #include "GameFramework/Actor.h"
+#include "UObject/ConstructorHelpers.h"
 
 
 UKashmirHurtboxComponent::UKashmirHurtboxComponent()
 {
     PrimaryComponentTick.bCanEverTick =
         false;
+
+    /*
+     * The Manny baseline profile is the project default combat
+     * anatomy, so a spawned actor only has to add the component.
+     */
+    static ConstructorHelpers::FObjectFinder<UKashmirHurtboxProfile>
+        DefaultProfile(
+            TEXT("/Game/KashmirAct/Combat/Hurtboxes/")
+            TEXT("DA_KashmirHurtbox_Manny.")
+            TEXT("DA_KashmirHurtbox_Manny"));
+
+    if (DefaultProfile.Succeeded())
+    {
+        HurtboxProfile =
+            DefaultProfile.Object;
+    }
+}
+
+
+void UKashmirHurtboxComponent::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (HurtboxProfile == nullptr)
+    {
+        return;
+    }
+
+    FString Reason;
+
+    if (!BuildFromProfile(
+            Reason))
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("Hurtbox build failed: %s"), *Reason);
+    }
+}
+
+
+bool UKashmirHurtboxComponent::BuildFromProfile(
+    FString& OutReason)
+{
+    OutReason.Reset();
+
+    USkeletalMeshComponent* Mesh =
+        TargetMesh;
+
+    if (Mesh == nullptr)
+    {
+        const AActor* OwnerActor =
+            GetOwner();
+
+        if (OwnerActor != nullptr)
+        {
+            Mesh =
+                OwnerActor->FindComponentByClass<
+                    USkeletalMeshComponent>();
+        }
+    }
+
+    if (Mesh == nullptr)
+    {
+        OutReason =
+            TEXT(
+                "hurtbox component has no skeletal mesh to build against"
+            );
+
+        return false;
+    }
+
+    return Build(
+        Mesh,
+        HurtboxProfile,
+        OutReason
+    );
 }
 
 
@@ -353,4 +429,58 @@ bool UKashmirHurtboxComponent::ResolveHitComponent(
         Definition.HitRegion;
 
     return true;
+}
+
+
+const FKashmirHurtboxDefinition*
+UKashmirHurtboxComponent::FindDefinitionForComponent(
+    const UPrimitiveComponent* HitComponent) const
+{
+    if (
+        HitComponent == nullptr ||
+        BoundProfile == nullptr)
+    {
+        return nullptr;
+    }
+
+    const int32 Index =
+        HurtboxComponents.IndexOfByPredicate(
+            [HitComponent](
+                const TObjectPtr<UPrimitiveComponent>& Candidate)
+            {
+                return Candidate.Get() ==
+                    HitComponent;
+            }
+        );
+
+    if (
+        Index == INDEX_NONE ||
+        !BoundProfile->Hurtboxes.IsValidIndex(
+            Index))
+    {
+        return nullptr;
+    }
+
+    return &BoundProfile->Hurtboxes[Index];
+}
+
+
+TArray<UPrimitiveComponent*>
+UKashmirHurtboxComponent::GetHurtboxPrimitives() const
+{
+    TArray<UPrimitiveComponent*> Result;
+
+    Result.Reserve(
+        HurtboxComponents.Num()
+    );
+
+    for (const TObjectPtr<UPrimitiveComponent>& Component :
+        HurtboxComponents)
+    {
+        Result.Add(
+            Component.Get()
+        );
+    }
+
+    return Result;
 }

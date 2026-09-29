@@ -102,6 +102,11 @@ protected:
     void EndWalk();
     void RefreshMovementSpeed();
     void ApplyPlayerMappingContext();
+    void RequestTechniqueSlot1();
+    void RequestTechniqueSlot2();
+    void RequestTechniqueSlot3();
+    void RequestTechniqueSlot4();
+    void RequestTechniqueSlot5();
     bool TryStartTraversal();
 
     void BeginMouseTurnCharacter();
@@ -230,6 +235,21 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> LeftMouseCameraAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input|Technique")
+    TObjectPtr<UInputAction> TechniqueSlot1Action;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input|Technique")
+    TObjectPtr<UInputAction> TechniqueSlot2Action;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input|Technique")
+    TObjectPtr<UInputAction> TechniqueSlot3Action;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input|Technique")
+    TObjectPtr<UInputAction> TechniqueSlot4Action;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input|Technique")
+    TObjectPtr<UInputAction> TechniqueSlot5Action;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Config")
     TObjectPtr<UKashmirMovementConfig> MovementConfig;
