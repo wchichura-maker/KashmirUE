@@ -59,6 +59,7 @@ public:
         const FKashmirSwordActionPlan& Plan,
         const FKashmirActionRuntimeState& RuntimeState,
         const FKashmirSwordPresentationState& PresentationState,
+        bool bExpectedMontageActive,
         FKashmirSwordPresentationSyncResult& OutResult,
         FString& OutReason
     ) const;

@@ -45,6 +45,7 @@ bool FKashmirSwordPresentationSyncResolver::Resolve(
     const FKashmirSwordActionPlan& Plan,
     const FKashmirActionRuntimeState& RuntimeState,
     const FKashmirSwordPresentationState& PresentationState,
+    const bool bExpectedMontageActive,
     FKashmirSwordPresentationSyncResult& OutResult,
     FString& OutReason) const
 {
@@ -77,7 +78,8 @@ bool FKashmirSwordPresentationSyncResolver::Resolve(
 
     OutResult.Command =
         !PresentationState.bActive ||
-        PresentationState.ActionId != RuntimeState.ActionId
+        PresentationState.ActionId != RuntimeState.ActionId ||
+        !bExpectedMontageActive
             ? EKashmirSwordPresentationCommand::Play
             : EKashmirSwordPresentationCommand::Synchronize;
     OutResult.MontagePositionSeconds = RuntimeState.Elapsed * Plan.PlayRate;
@@ -108,9 +110,25 @@ bool UKashmirSwordPresentationComponent::ApplyRuntimeState(
     const FKashmirActionRuntimeState& RuntimeState,
     FString& OutReason)
 {
+    UAnimInstance* AnimInstance = SkeletalMesh != nullptr
+        ? SkeletalMesh->GetAnimInstance()
+        : nullptr;
+    UAnimMontage* ExpectedMontage = Plan.Montage.LoadSynchronous();
+    const bool bExpectedMontageActive =
+        AnimInstance != nullptr &&
+        ExpectedMontage != nullptr &&
+        ActiveMontage == ExpectedMontage &&
+        AnimInstance->Montage_IsActive(ExpectedMontage);
+
     FKashmirSwordPresentationSyncResult Sync;
     FKashmirSwordPresentationSyncResolver Resolver;
-    if (!Resolver.Resolve(Plan, RuntimeState, PresentationState, Sync, OutReason))
+    if (!Resolver.Resolve(
+            Plan,
+            RuntimeState,
+            PresentationState,
+            bExpectedMontageActive,
+            Sync,
+            OutReason))
     {
         return false;
     }
@@ -146,14 +164,14 @@ bool UKashmirSwordPresentationComponent::ApplyRuntimeState(
         return false;
     }
 
-    UAnimInstance* AnimInstance = SkeletalMesh->GetAnimInstance();
+    AnimInstance = SkeletalMesh->GetAnimInstance();
     if (AnimInstance == nullptr)
     {
         OutReason = TEXT("sword presentation requires an animation instance");
         return false;
     }
 
-    UAnimMontage* Montage = Plan.Montage.LoadSynchronous();
+    UAnimMontage* Montage = ExpectedMontage;
     if (Montage == nullptr)
     {
         OutReason = TEXT("sword presentation montage could not be loaded");
