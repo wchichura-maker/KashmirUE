@@ -210,6 +210,12 @@ Pendente para concluir UE2.1:
   container após `NativeUpdateAnimation()`. `DefaultSlot`, montage playback,
   WeaponTrace e autoridade de combate permanecem inalterados. A aceitação
   visual de pose, clipping e contato ainda exige Aura/PIE.
+- **UE2.3.10 — Procedural Technique Authoring v0.1:** `IMPLEMENTED / AUTOMATION
+  VALIDATED / PIE PENDING`. Multiple Techniques can share one Base Motion and
+  one kinematic family while producing distinct presentation through
+  data-driven procedural parameters. `Quick` and `Wide` test definitions share
+  `AM_KashmirSword_HorizontalB` and `DiagonalRising`; runtime, trace, damage and
+  combat resolution remain unchanged.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova
