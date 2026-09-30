@@ -474,3 +474,76 @@
 - Na UE 5.8, `FAnimNode_BlendListByBool` seleciona child `1` para `false` e
   child `0` para `true`. O asset e os testes estruturais preservam explicitamente
   essa semântica: `false -> LayeredBoneBlend` e `true -> DefaultSlot` raw.
+
+## UE-0026 — Movement Delivery define deslocamento autorado pela Technique
+
+- **Status da decisão:** **DECIDED** em 2026-09-30.
+- **Status técnico:** contrato e propagação até o ActionPlan **IMPLEMENTED /
+  AUTOMATION VALIDATED**. A execução física posterior é regida por UE-0027.
+- `MovementIntent` controla a participação corporal da Base Motion na
+  apresentação. `MovementDelivery` controla uma solicitação autorada de
+  deslocamento real do personagem. Nenhum dos dois implica Root Motion.
+- `EKashmirMovementDelivery` começa apenas com `None` e
+  `ControlledTranslation`. `FKashmirTechniqueMovementSpec` contém delivery,
+  distância, duração e direção lógica relativa; v0.1 expõe somente `Forward`.
+- Todas as Techniques atuais permanecem com `Delivery=None`. Não existe
+  StepForward jogável nesta etapa.
+- O spec percorre `CombatTechniqueDefinition -> SwordActionPlan` sem alterar
+  MovementIntent, montage, damage, WeaponTrace, HitEvidence, hurtboxes ou
+  CombatResult.
+- O futuro executor deve operar sobre CharacterMovement/movimento autorizado e
+  acompanhar o estado Startup/Active/Recovery do ActionRuntime existente, sem
+  criar uma segunda máquina de fases. Server authority, prediction, replay,
+  collision validation e novas direções permanecem pendentes.
+- `Stationary + ControlledTranslation` é uma combinação válida; `FullBody` não
+  implica deslocamento. Participação corporal e translação mundial permanecem
+  contratos ortogonais.
+
+## UE-0027 — Movement Delivery Runtime usa CharacterMovement com sweep
+
+- **Status da decisão:** **DECIDED** em 2026-09-30.
+- **Status técnico:** **IMPLEMENTED / AUTOMATION VALIDATED / PIE VALIDATED**.
+- `UKashmirMovementDeliveryComponent` executa `ControlledTranslation` como
+  deslocamento de gameplay. A animação continua sendo somente apresentação;
+  Root Motion e `MovementIntent` não autorizam nem dirigem o deslocamento.
+- A entrega começa quando o `ActionRuntime` aceita e inicia a ação (`t=0`). A
+  direção horizontal relativa ao yaw do personagem é capturada no início e a
+  velocidade solicitada é constante: `Distance / Duration`.
+- O componente usa o `UpdatedComponent` do `CharacterMovement` por
+  `SafeMoveUpdatedComponent`, sempre com sweep. Colisão pode reduzir a distância
+  efetiva e encerra a entrega como `Blocked`; não há teleporte direto nem
+  compensação posterior da distância bloqueada.
+- A entrega encerra ao completar distância/duração, por cancelamento, bloqueio,
+  invalidação ou quando a ação correspondente deixa de estar ativa. Ela usa o
+  ciclo de vida do `ActionRuntime` existente e não cria uma segunda máquina de
+  Startup/Active/Recovery.
+- Cancelamento explícito pertence ao `ActionRuntime`. `CancelCurrentAction()`
+  solicita a interrupção à mesma autoridade que aplica `bCancellable` e
+  `CancelWindows`; somente um cancelamento aceito encerra MovementDelivery como
+  `Cancelled`, fecha trace e interrompe presentation. `CancelGesture()` continua
+  limitado à captura legada e não é autoridade de Action.
+- `ControlledTranslation.Duration` não pode exceder a duração total da definição
+  encontrada na tabela autoritativa do `ActionRuntime`. Um plano impossível é
+  rejeitado antes de iniciar com `MovementDurationExceedsActionLifetime`; não há
+  truncamento silencioso. `ActionEnded` permanece fallback defensivo para estado
+  invalidado ou divergência externa.
+- Observabilidade de desenvolvimento expõe estado ativo, distância solicitada e
+  efetiva, tempo, velocidade/delta solicitados, bloqueio e motivo de término,
+  sem autoridade de gameplay adicional.
+- Todas as Techniques publicadas continuam `Delivery=None`; portanto nenhum
+  golpe jogável foi alterado e StepForward permanece **PENDING**. Prediction,
+  server authority, replay e novas direções também permanecem **PENDING**.
+- Cruzar uma borda sem colisão frontal e entrar em `MOVE_FALLING` não é tratado
+  como blocking collision. Uma futura `LedgePolicy`/`GroundSupportPolicy` deverá
+  decidir por Technique entre permitir queda, parar na borda ou exigir suporte
+  projetado; nenhuma dessas políticas foi implementada.
+- `L_CombatTest` não contém blocker apropriado para o branch `Blocked`: o alvo de
+  combate usa `QueryOnly`/`Pawn=Ignore`, enquanto o único `Pawn=Block` é a
+  geometria de chão. Para PIE, o componente oferece exclusivamente em Editor um
+  blocker `RF_Transient`, Development-only, sem asset e sem salvar o mapa.
+- PIE validou `Completed`, `Cancelled`, cancelamento recusado, `Blocked`,
+  duration guard e `ActionEnded`. No teste final de parede, o blocker solicitado
+  e efetivo permaneceu em `(100,0,100)`; `RequestedDistance=80 cm` resultou em
+  `ActualDistance=47.3536 cm`, sem teleport, compensação, atravessamento ou
+  movimento residual. Slope continua futuro/non-blocking e não integra o gate
+  v0.1.

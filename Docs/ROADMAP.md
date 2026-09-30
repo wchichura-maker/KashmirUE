@@ -90,6 +90,9 @@ Implementado e validado:
 Pendente:
 
 - [ ] Calibração interativa de cadência/play rate direcional.
+- [ ] `Locomotion / Combat Presentation Polish`: revisar pernas excessivamente
+  rápidas, torção de tronco, baixa participação da pelvis e retorno corporal
+  acelerado, mais evidente nos ataques 2 e 4. Não bloqueia Movement Delivery.
 - [ ] Política final de Root Motion.
 - [ ] Linked Anim Layers.
 - [ ] Gait de Sprint dirigido por buffs/status, sem input direto.
@@ -229,6 +232,26 @@ Pendente para concluir UE2.1:
   PIE confirmou lower body plantado na rota `Stationary`, participação corporal
   da montage na rota `FullBody`, root estável em zero, damage `-24`, trace window,
   recovery e retorno seguro `Stationary -> FullBody -> Stationary`.
+- **UE2.3.12 — Movement Delivery v0.1:** `IMPLEMENTED / AUTOMATION VALIDATED /
+  PIE VALIDATED`. Techniques podem
+  carregar um `FKashmirTechniqueMovementSpec` separado de MovementIntent, com
+  `None` ou `ControlledTranslation`, distância, duração e direção lógica
+  `Forward`. O spec chega ao `SwordActionPlan`; o runtime inicia em `t=0`, fixa
+  o forward horizontal do personagem, aplica `Distance / Duration` por
+  `CharacterMovement` com sweep e encerra por conclusão, cancelamento, fim da
+  Action ou bloqueio. Colisão pode reduzir a distância efetiva sem compensação.
+  Todas as Techniques atuais permanecem `None`; StepForward jogável, prediction,
+  replay e server authority permanecem pendentes. MovementIntent,
+  MovementDelivery e Root Motion continuam contratos independentes.
+  A rota pública de cancelamento agora passa pelo `ActionRuntime` e respeita
+  cancellability; duração impossível é rejeitada contra a vida autoritativa da
+  Action. Automation cobre cancelamento aceito/recusado, ausência de movimento
+  residual, duração igual/rejeitada e blocker transitório. PIE confirmou free
+  space a `80 cm / 0.25 s`, cancelamento aceito em `32 cm`, cancelamento recusado,
+  duration guard e blocking collision com `ActualDistance=47.3536 cm` para
+  `RequestedDistance=80 cm`, sem teleport, compensação ou movimento residual.
+  Slope permanece futuro/non-blocking. Cruzar ledge sem colisão continua
+  fisicamente permitido até uma futura `LedgePolicy`/`GroundSupportPolicy`.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova
