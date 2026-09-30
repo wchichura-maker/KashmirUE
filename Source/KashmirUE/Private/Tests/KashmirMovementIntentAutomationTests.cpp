@@ -45,17 +45,17 @@ namespace
     const FName QuickId(TEXT("Technique.Sword.Diagonal.Rising.Quick"));
     const FName WideId(TEXT("Technique.Sword.Diagonal.Rising.Wide"));
 
-    UKashmirWeaponCombatStyle* LoadStyle()
+    UKashmirWeaponCombatStyle* LoadMovementIntentStyle()
     {
         return LoadObject<UKashmirWeaponCombatStyle>(nullptr, StylePath);
     }
 
-    UKashmirDirectionalSwordProfile* LoadProfile()
+    UKashmirDirectionalSwordProfile* LoadMovementIntentProfile()
     {
         return LoadObject<UKashmirDirectionalSwordProfile>(nullptr, ProfilePath);
     }
 
-    const FKashmirCombatTechniqueDefinition* FindTechnique(
+    const FKashmirCombatTechniqueDefinition* FindMovementIntentTechnique(
         const UKashmirWeaponCombatStyle* Style,
         const FName Id)
     {
@@ -68,7 +68,7 @@ namespace
             : nullptr;
     }
 
-    bool ResolvePlanForTechnique(
+    bool ResolveMovementIntentPlanForTechnique(
         UKashmirWeaponCombatStyle* SourceStyle,
         UKashmirDirectionalSwordProfile* Profile,
         const FName TechniqueId,
@@ -96,7 +96,7 @@ namespace
         return true;
     }
 
-    UEdGraphPin* FindPosePin(UEdGraphNode* Node, EEdGraphPinDirection Direction, int32 Index = 0)
+    UEdGraphPin* FindMovementIntentPosePin(UEdGraphNode* Node, EEdGraphPinDirection Direction, int32 Index = 0)
     {
         int32 Found = 0;
         if (Node != nullptr)
@@ -118,22 +118,22 @@ namespace
         return nullptr;
     }
 
-    bool HasLink(UEdGraphPin* From, UEdGraphPin* To)
+    bool HasMovementIntentLink(UEdGraphPin* From, UEdGraphPin* To)
     {
         return From != nullptr && To != nullptr && From->LinkedTo.Contains(To);
     }
 
-    int32 ResolveBoolChildIndex(const bool bValue)
+    int32 ResolveMovementIntentBoolChildIndex(const bool bValue)
     {
         FBlendListByBoolSemanticProbe Probe;
         return Probe.ResolveChildIndex(bValue);
     }
 
-    UEdGraphPin* FindRoutePosePinForValue(
+    UEdGraphPin* FindMovementIntentRoutePosePinForValue(
         UAnimGraphNode_BlendListByBool* Route,
         const bool bValue)
     {
-        const int32 ChildIndex = ResolveBoolChildIndex(bValue);
+        const int32 ChildIndex = ResolveMovementIntentBoolChildIndex(bValue);
         return Route != nullptr
             ? Route->FindPin(*FString::Printf(TEXT("BlendPose_%d"), ChildIndex))
             : nullptr;
@@ -170,9 +170,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirMovementIntentTechniqueRoutesTest::RunTest(const FString& Parameters)
 {
-    UKashmirWeaponCombatStyle* Style = LoadStyle();
-    UKashmirDirectionalSwordProfile* Profile = LoadProfile();
-    const FKashmirCombatTechniqueDefinition* FullBody = FindTechnique(Style, FullBodyId);
+    UKashmirWeaponCombatStyle* Style = LoadMovementIntentStyle();
+    UKashmirDirectionalSwordProfile* Profile = LoadMovementIntentProfile();
+    const FKashmirCombatTechniqueDefinition* FullBody = FindMovementIntentTechnique(Style, FullBodyId);
     TestNotNull(TEXT("FullBody proof Technique exists"), FullBody);
     if (Style == nullptr || Profile == nullptr || FullBody == nullptr || Style->SlotBindings.IsEmpty())
     {
@@ -183,10 +183,10 @@ bool FKashmirMovementIntentTechniqueRoutesTest::RunTest(const FString& Parameter
     FKashmirSwordActionPlan FullBodyPlan;
     FString Reason;
     TestTrue(TEXT("Stationary Technique resolves"),
-        ResolvePlanForTechnique(Style, Profile, StationaryId, StationaryPlan, Reason));
+        ResolveMovementIntentPlanForTechnique(Style, Profile, StationaryId, StationaryPlan, Reason));
     Reason.Reset();
     TestTrue(TEXT("FullBody Technique resolves through the same runtime"),
-        ResolvePlanForTechnique(Style, Profile, FullBodyId, FullBodyPlan, Reason));
+        ResolveMovementIntentPlanForTechnique(Style, Profile, FullBodyId, FullBodyPlan, Reason));
     TestEqual(TEXT("Stationary route reaches the action plan"),
         StationaryPlan.MovementIntent, EKashmirMovementIntent::Stationary);
     TestEqual(TEXT("FullBody route reaches the action plan"),
@@ -208,7 +208,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirMovementIntentBaselineTest::RunTest(const FString& Parameters)
 {
-    const UKashmirWeaponCombatStyle* Style = LoadStyle();
+    const UKashmirWeaponCombatStyle* Style = LoadMovementIntentStyle();
     TestNotNull(TEXT("Sword baseline loads"), Style);
     if (Style == nullptr)
     {
@@ -217,7 +217,7 @@ bool FKashmirMovementIntentBaselineTest::RunTest(const FString& Parameters)
     for (const FKashmirTechniqueSlotBinding& Binding : Style->SlotBindings)
     {
         const FKashmirCombatTechniqueDefinition* Technique =
-            FindTechnique(Style, Binding.TechniqueId);
+            FindMovementIntentTechnique(Style, Binding.TechniqueId);
         TestNotNull(*FString::Printf(TEXT("Bound slot %d resolves"), static_cast<int32>(Binding.Slot)), Technique);
         if (Technique != nullptr)
         {
@@ -227,7 +227,7 @@ bool FKashmirMovementIntentBaselineTest::RunTest(const FString& Parameters)
     }
     for (const FName Id : { QuickId, WideId })
     {
-        const FKashmirCombatTechniqueDefinition* Technique = FindTechnique(Style, Id);
+        const FKashmirCombatTechniqueDefinition* Technique = FindMovementIntentTechnique(Style, Id);
         TestNotNull(*FString::Printf(TEXT("%s exists"), *Id.ToString()), Technique);
         if (Technique != nullptr)
         {
@@ -235,7 +235,7 @@ bool FKashmirMovementIntentBaselineTest::RunTest(const FString& Parameters)
                 Technique->MovementIntent, EKashmirMovementIntent::Stationary);
         }
     }
-    const FKashmirCombatTechniqueDefinition* FullBody = FindTechnique(Style, FullBodyId);
+    const FKashmirCombatTechniqueDefinition* FullBody = FindMovementIntentTechnique(Style, FullBodyId);
     TestNotNull(TEXT("Unbound FullBody proof exists"), FullBody);
     if (FullBody != nullptr)
     {
@@ -329,19 +329,20 @@ bool FKashmirMovementIntentAnimGraphTest::RunTest(const FString& Parameters)
     TestNotNull(TEXT("Stationary layered route exists"), Layered);
     TestNotNull(TEXT("FullBody selector exists"), Route);
     TestNotNull(TEXT("Movement Intent selector source exists"), Selector);
-    TestEqual(TEXT("UE bool false selects child 1"), ResolveBoolChildIndex(false), 1);
-    TestEqual(TEXT("UE bool true selects child 0"), ResolveBoolChildIndex(true), 0);
+    TestEqual(TEXT("UE bool false selects child 1"), ResolveMovementIntentBoolChildIndex(false), 1);
+    TestEqual(TEXT("UE bool true selects child 0"), ResolveMovementIntentBoolChildIndex(true), 0);
     TestTrue(TEXT("Stationary false evaluates the layered route"),
-        HasLink(FindPosePin(Layered, EGPD_Output),
-            FindRoutePosePinForValue(Route, false)));
+        HasMovementIntentLink(FindMovementIntentPosePin(Layered, EGPD_Output),
+            FindMovementIntentRoutePosePinForValue(Route, false)));
     TestTrue(TEXT("FullBody true evaluates the raw DefaultSlot route"),
-        HasLink(FindPosePin(Slot, EGPD_Output),
-            FindRoutePosePinForValue(Route, true)));
+        HasMovementIntentLink(FindMovementIntentPosePin(Slot, EGPD_Output),
+            FindMovementIntentRoutePosePinForValue(Route, true)));
     TestTrue(TEXT("Route selector remains upstream of Control Rig"),
-        HasLink(FindPosePin(Route, EGPD_Output), FindPosePin(Rig, EGPD_Input)));
+        HasMovementIntentLink(FindMovementIntentPosePin(Route, EGPD_Output),
+            FindMovementIntentPosePin(Rig, EGPD_Input)));
     TestTrue(TEXT("Movement Intent drives the bool selector"),
         Selector != nullptr && Route != nullptr &&
-        HasLink(Selector->FindPin(TEXT("bUseFullBodySwordMontage")),
+        HasMovementIntentLink(Selector->FindPin(TEXT("bUseFullBodySwordMontage")),
             Route->FindPin(TEXT("bActiveValue"))));
     const UAnimInstance* Defaults = Blueprint->GeneratedClass != nullptr
         ? Cast<UAnimInstance>(Blueprint->GeneratedClass->GetDefaultObject())

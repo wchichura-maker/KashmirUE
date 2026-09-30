@@ -73,6 +73,45 @@ enum class EKashmirMovementIntent : uint8
 };
 
 
+/** How a Technique requests authored world displacement. Independent of presentation and Root Motion. */
+UENUM(BlueprintType)
+enum class EKashmirMovementDelivery : uint8
+{
+    None,
+    ControlledTranslation
+};
+
+
+/** Logical direction for authored movement. Expand only when a real Technique requires it. */
+UENUM(BlueprintType)
+enum class EKashmirMovementDirection : uint8
+{
+    Forward
+};
+
+
+/** Data-only movement request. Execution remains a future CharacterMovement-owned runtime. */
+USTRUCT(BlueprintType)
+struct KASHMIRUE_API FKashmirTechniqueMovementSpec
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EKashmirMovementDelivery Delivery = EKashmirMovementDelivery::None;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0.0", Units="cm"))
+    float Distance = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0.0", Units="s"))
+    float Duration = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EKashmirMovementDirection Direction = EKashmirMovementDirection::Forward;
+
+    bool IsValid(FString& OutReason) const;
+};
+
+
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirTechniqueRequest
 {
@@ -134,6 +173,10 @@ struct KASHMIRUE_API FKashmirCombatTechniqueDefinition
     /** Presentation participation only; independent of displacement and Root Motion policy. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     EKashmirMovementIntent MovementIntent = EKashmirMovementIntent::Stationary;
+
+    /** Optional world-displacement request; it does not alter Base Motion participation. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FKashmirTechniqueMovementSpec MovementSpec;
 
     /**
      * Optional Sword presentation authored by this Technique.

@@ -12,6 +12,7 @@
 
 
 class UKashmirSwordPresentationComponent;
+class UKashmirMovementDeliveryComponent;
 
 
 USTRUCT(BlueprintType)
@@ -106,6 +107,9 @@ public:
     void SetWeaponTraceComponent(
         UKashmirWeaponTraceComponent* InWeaponTraceComponent);
 
+    void SetMovementDeliveryComponent(
+        UKashmirMovementDeliveryComponent* InMovementDeliveryComponent);
+
     UFUNCTION(BlueprintCallable, Category="Combat|Directional Sword")
     bool BeginGesture(FString& OutReason);
 
@@ -130,6 +134,10 @@ public:
         const FKashmirTechniqueRequest& Request,
         const UKashmirWeaponCombatStyle* Style,
         FString& OutReason);
+
+    /** Cancels the current Action through ActionRuntime cancellability rules. */
+    UFUNCTION(BlueprintCallable, Category="Combat|Action")
+    bool CancelCurrentAction(FString& OutReason);
 
     UFUNCTION(BlueprintCallable, Category="Combat|Directional Sword")
     void CancelGesture();
@@ -192,6 +200,9 @@ private:
 
     UPROPERTY(Transient)
     TObjectPtr<UKashmirWeaponTraceComponent> WeaponTraceComponent;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UKashmirMovementDeliveryComponent> MovementDeliveryComponent;
 
     FKashmirSwordGestureInput CapturedGesture;
     FVector2D AccumulatedPosition = FVector2D::ZeroVector;

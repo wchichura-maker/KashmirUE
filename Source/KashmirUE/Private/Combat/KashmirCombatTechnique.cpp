@@ -1,6 +1,33 @@
 #include "Combat/KashmirCombatTechnique.h"
 
 
+bool FKashmirTechniqueMovementSpec::IsValid(FString& OutReason) const
+{
+    OutReason.Reset();
+    if (!FMath::IsFinite(Distance) || Distance < 0.0f ||
+        !FMath::IsFinite(Duration) || Duration < 0.0f)
+    {
+        OutReason = TEXT("technique movement spec contains invalid numeric configuration");
+        return false;
+    }
+    if (Delivery == EKashmirMovementDelivery::None)
+    {
+        if (!FMath::IsNearlyZero(Distance) || !FMath::IsNearlyZero(Duration))
+        {
+            OutReason = TEXT("movement delivery None requires zero distance and duration");
+            return false;
+        }
+        return true;
+    }
+    if (Distance <= UE_SMALL_NUMBER || Duration <= UE_SMALL_NUMBER)
+    {
+        OutReason = TEXT("controlled translation requires positive distance and duration");
+        return false;
+    }
+    return true;
+}
+
+
 bool FKashmirTechniqueRequest::IsValid(FString& OutReason) const
 {
     OutReason.Reset();
@@ -45,6 +72,13 @@ bool FKashmirCombatTechniqueDefinition::IsValid(FString& OutReason) const
     {
         OutReason = FString::Printf(
             TEXT("combat technique has invalid sword presentation: %s"),
+            *OutReason);
+        return false;
+    }
+    if (!MovementSpec.IsValid(OutReason))
+    {
+        OutReason = FString::Printf(
+            TEXT("combat technique has invalid movement spec: %s"),
             *OutReason);
         return false;
     }

@@ -1,6 +1,7 @@
 #include "Combat/KashmirDirectionalSwordComponent.h"
 
 #include "Combat/KashmirSwordPresentationComponent.h"
+#include "Combat/KashmirMovementDeliveryComponent.h"
 
 
 bool FKashmirDirectionalSwordContactResolver::Resolve(
@@ -97,6 +98,10 @@ void UKashmirDirectionalSwordComponent::SetProfile(
         WeaponTraceComponent->EndTraceWindow();
     }
     Profile = InProfile;
+    if (MovementDeliveryComponent != nullptr)
+    {
+        MovementDeliveryComponent->CancelDelivery();
+    }
     CancelGesture();
     ActivePlan = {};
     Runtime.Reset();
@@ -130,6 +135,18 @@ void UKashmirDirectionalSwordComponent::SetWeaponTraceComponent(
     {
         WeaponTraceComponent->BeginTraceWindow();
     }
+}
+
+
+void UKashmirDirectionalSwordComponent::SetMovementDeliveryComponent(
+    UKashmirMovementDeliveryComponent* InMovementDeliveryComponent)
+{
+    if (MovementDeliveryComponent != nullptr &&
+        MovementDeliveryComponent != InMovementDeliveryComponent)
+    {
+        MovementDeliveryComponent->CancelDelivery();
+    }
+    MovementDeliveryComponent = InMovementDeliveryComponent;
 }
 
 
@@ -301,6 +318,7 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
     Plan.MontageSection = TechniquePlan.Technique.MontageSection;
     Plan.PlayRate = TechniquePlan.Technique.PlayRate;
     Plan.MovementIntent = TechniquePlan.Technique.MovementIntent;
+    Plan.MovementSpec = TechniquePlan.Technique.MovementSpec;
     if (TechniquePlan.Technique.bOverrideSwordPresentation)
     {
         Plan.PoseConfig = TechniquePlan.Technique.SwordPresentation;
@@ -323,7 +341,40 @@ bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
     {
         return false;
     }
-
+    if (Plan.MovementSpec.Delivery ==
+        EKashmirMovementDelivery::ControlledTranslation)
+    {
+        float ActionLifetime = 0.0f;
+        if (!Runtime->GetActionTotalDuration(
+                Plan.Gesture.ActionRequest.ActionId,
+                ActionLifetime,
+                OutReason))
+        {
+            return false;
+        }
+        if (Plan.MovementSpec.Duration - KINDA_SMALL_NUMBER > ActionLifetime)
+        {
+            OutReason = FString::Printf(
+                TEXT("MovementDurationExceedsActionLifetime: movement=%.3fs action=%.3fs action_id=%s"),
+                Plan.MovementSpec.Duration,
+                ActionLifetime,
+                *Plan.Gesture.ActionRequest.ActionId.ToString());
+            return false;
+        }
+    }
+    if (MovementDeliveryComponent != nullptr)
+    {
+        if (!MovementDeliveryComponent->CanStartDelivery(
+                Plan.MovementSpec, OutReason))
+        {
+            return false;
+        }
+    }
+    else if (Plan.MovementSpec.Delivery != EKashmirMovementDelivery::None)
+    {
+        OutReason = TEXT("controlled translation requires a movement delivery component");
+        return false;
+    }
     const FKashmirActionRuntimeState CurrentState = Runtime->GetState();
     const bool bWasActive = CurrentState.bActive;
     const bool bStarted = bWasActive
@@ -347,8 +398,49 @@ bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
 
     ActivePlan = Plan;
     const FKashmirActionRuntimeState StartedState = Runtime->GetState();
+    if (MovementDeliveryComponent != nullptr &&
+        !MovementDeliveryComponent->StartDelivery(
+            Plan.MovementSpec, StartedState.ActionId, OutReason))
+    {
+        return false;
+    }
     SynchronizeTraceWindow(CurrentState, StartedState);
     ApplyPresentation(StartedState);
+    return true;
+}
+
+
+bool UKashmirDirectionalSwordComponent::CancelCurrentAction(FString& OutReason)
+{
+    OutReason.Reset();
+    if (Runtime == nullptr || !ActivePlan.bResolved)
+    {
+        OutReason = TEXT("no active action to cancel");
+        return false;
+    }
+
+    const FKashmirActionRuntimeState PreviousState = Runtime->GetState();
+    if (!Runtime->TryCancelCurrent(OutReason))
+    {
+        const FString RuntimeReason = OutReason.IsEmpty()
+            ? TEXT("runtime supplied no cancellation detail")
+            : OutReason;
+        OutReason = FString::Printf(
+            TEXT("ActionCannotBeCancelled: current=%s phase=%d; %s"),
+            *PreviousState.ActionId.ToString(),
+            static_cast<int32>(PreviousState.Phase),
+            *RuntimeReason);
+        return false;
+    }
+
+    if (MovementDeliveryComponent != nullptr)
+    {
+        MovementDeliveryComponent->CancelDelivery();
+    }
+    const FKashmirActionRuntimeState CancelledState = Runtime->GetState();
+    SynchronizeTraceWindow(PreviousState, CancelledState);
+    ApplyPresentation(CancelledState);
+    ActivePlan = {};
     return true;
 }
 
@@ -476,12 +568,37 @@ bool UKashmirDirectionalSwordComponent::AdvanceRuntime(
     }
 
     const FKashmirActionRuntimeState PreviousState = Runtime->GetState();
+    if (MovementDeliveryComponent != nullptr &&
+        MovementDeliveryComponent->IsDeliveryActive())
+    {
+        float ActionLifetime = PreviousState.Elapsed;
+        if (!Runtime->GetActionTotalDuration(
+                PreviousState.ActionId, ActionLifetime, OutReason))
+        {
+            return false;
+        }
+        const float ActionTimeRemaining =
+            FMath::Max(0.0f, ActionLifetime - PreviousState.Elapsed);
+        const float DeliveryDelta = FMath::Min(DeltaSeconds, ActionTimeRemaining);
+        if (!MovementDeliveryComponent->AdvanceDelivery(
+                DeliveryDelta, PreviousState, OutReason))
+        {
+            return false;
+        }
+    }
     if (!Runtime->Advance(DeltaSeconds, OutReason))
     {
         return false;
     }
 
     const FKashmirActionRuntimeState RuntimeState = Runtime->GetState();
+    if (MovementDeliveryComponent != nullptr &&
+        MovementDeliveryComponent->IsDeliveryActive() &&
+        !RuntimeState.bActive &&
+        !MovementDeliveryComponent->AdvanceDelivery(0.0f, RuntimeState, OutReason))
+    {
+        return false;
+    }
     SynchronizeTraceWindow(PreviousState, RuntimeState);
     ApplyPresentation(RuntimeState);
     if (!RuntimeState.bActive)

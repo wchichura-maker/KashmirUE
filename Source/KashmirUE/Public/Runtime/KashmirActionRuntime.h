@@ -83,9 +83,11 @@ public:
     FKashmirActionRuntime(const TMap<FName, FKashmirActionDefinition>& InDefinitions, const TArray<FKashmirTransitionRule>& InTransitions, FKashmirResourceRuntime& InResources);
     bool Start(const FKashmirActionRequest& Request, FString& OutReason);
     bool Advance(float DeltaSeconds, FString& OutReason);
+    bool TryCancelCurrent(FString& OutReason);
     bool TryCancel(const FKashmirActionRequest& NextRequest, FString& OutReason);
     bool TransitionTo(const FKashmirActionRequest& NextRequest, const FGameplayTagContainer& ContextTags, FString& OutReason);
     TArray<FName> GetTransitionOptions(const FGameplayTagContainer& ContextTags) const;
+    bool GetActionTotalDuration(FName ActionId, float& OutDuration, FString& OutReason) const;
     FKashmirActionRuntimeState GetState() const;
     TArray<FKashmirActionEvent> DrainEvents();
 private:

@@ -21,6 +21,7 @@
 #include "Traversal/KashmirTraversalComponent.h"
 #include "Combat/KashmirSwordPresentationComponent.h"
 #include "Combat/KashmirDirectionalSwordComponent.h"
+#include "Combat/KashmirMovementDeliveryComponent.h"
 #include "Combat/KashmirWeaponTraceComponent.h"
 #include "Combat/KashmirCombatantComponent.h"
 #include "Combat/KashmirDirectionalMeleeResolver.h"
@@ -65,6 +66,9 @@ AKashmirCharacter::AKashmirCharacter()
     DirectionalSwordComponent =
         CreateDefaultSubobject<UKashmirDirectionalSwordComponent>(
             TEXT("DirectionalSwordComponent"));
+    MovementDeliveryComponent =
+        CreateDefaultSubobject<UKashmirMovementDeliveryComponent>(
+            TEXT("MovementDeliveryComponent"));
 
     SwordPrototypeMesh = CreateDefaultSubobject<UStaticMeshComponent>(
         TEXT("SwordPrototypeMesh"));
@@ -123,6 +127,8 @@ void AKashmirCharacter::BeginPlay()
             SwordPresentationComponent);
         DirectionalSwordComponent->SetWeaponTraceComponent(
             WeaponTraceComponent);
+        DirectionalSwordComponent->SetMovementDeliveryComponent(
+            MovementDeliveryComponent);
         DirectionalSwordComponent->OnSwordContact.AddUniqueDynamic(
             this,
             &AKashmirCharacter::HandleSwordContact);

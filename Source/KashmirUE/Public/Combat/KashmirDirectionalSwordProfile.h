@@ -103,6 +103,10 @@ struct KASHMIRUE_API FKashmirSwordActionPlan
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     EKashmirMovementIntent MovementIntent = EKashmirMovementIntent::Stationary;
 
+    /** Authored displacement request for a future movement executor. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FKashmirTechniqueMovementSpec MovementSpec;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FKashmirSwordPoseConfig PoseConfig;
 

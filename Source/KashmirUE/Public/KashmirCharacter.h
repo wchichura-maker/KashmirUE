@@ -10,6 +10,7 @@ class UInputAction;
 class UInputMappingContext;
 class UAnimMontage;
 class UKashmirMovementConfig;
+class UKashmirMovementDeliveryComponent;
 class UKashmirTraversalComponent;
 class UKashmirSwordPresentationComponent;
 class UKashmirWeaponTraceComponent;
@@ -60,6 +61,10 @@ public:
     UFUNCTION(BlueprintPure, Category="Combat|Directional Sword")
     UKashmirDirectionalSwordComponent* GetDirectionalSwordComponent() const
     { return DirectionalSwordComponent; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Movement Delivery")
+    UKashmirMovementDeliveryComponent* GetMovementDeliveryComponent() const
+    { return MovementDeliveryComponent; }
 
     UFUNCTION(BlueprintPure, Category="Combat|Weapon")
     UKashmirWeaponTraceComponent* GetWeaponTraceComponent() const
@@ -184,6 +189,9 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Directional Sword")
     TObjectPtr<UKashmirDirectionalSwordComponent> DirectionalSwordComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Movement Delivery")
+    TObjectPtr<UKashmirMovementDeliveryComponent> MovementDeliveryComponent;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Weapon")
     TObjectPtr<UStaticMeshComponent> SwordPrototypeMesh;
