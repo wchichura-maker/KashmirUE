@@ -437,3 +437,40 @@
   legado, além do logical slot, `AM_KashmirSword_HorizontalB`, ActionRuntime,
   WeaponTrace, damage e timing. Renomear o ActionId ampliaria o contrato sem
   benefício para esta correção semântica.
+
+## UE-0025 — Movement Intent define a participação corporal da Base Motion
+
+- **Status da decisão:** **DECIDED** em 2026-09-30.
+- **Status técnico:** **IMPLEMENTED / AUTOMATION VALIDATED / PIE VALIDATED** para
+  `Stationary` e `FullBody`.
+- `MovementIntent` é metadata da `CombatTechnique` e define como a Base Motion
+  participa da apresentação corporal. Ele não decide gameplay, dano, contato,
+  deslocamento ou Root Motion.
+- `Stationary` preserva a locomotion/base pose no lower body e aplica a montage
+  de `spine_01` para cima por `Layered Blend per Bone`. Esta é a rota validada
+  para os Slots 1–4, Quick e Wide.
+- `FullBody` permite que a montage participe do corpo inteiro, sem o mask
+  upper-body da rota Stationary. O `CR_KashmirSword` continua downstream e pode
+  aplicar apresentação procedural depois de ambas as rotas.
+- `FullBody` não significa Root Motion. O AnimBP permanece em
+  `Root Motion From Montages Only`, e qualquer deslocamento autorado continua
+  sujeito à política de Root Motion vigente e a decisões futuras específicas.
+- O fluxo de apresentação é
+  `Technique -> SwordActionPlan -> SwordPresentationComponent -> transient AnimInstance snapshot -> AnimGraph route`.
+  Não há Actor lookup durante pose evaluation nem branch por TechniqueId,
+  Quick, Wide ou Sword.
+- `Technique.Sword.Test.FullBody` é uma definição de prova não vinculada a input;
+  reutiliza autoridade, timing, damage e WeaponTrace existentes somente para
+  demonstrar a seleção da rota FullBody.
+- Step, Lunge, Advance, Retreat, Pivot e Airborne permanecem **PENDING** e não
+  fazem parte do enum v0.1.
+- Esta decisão é distinta de `UE-0024`: Kinematic Family descreve compatibilidade
+  cinemática; Movement Intent descreve participação lower-body/full-body.
+- PIE confirmou a separação física: `Stationary` manteve pés em aproximadamente
+  `0.1 uu` e pelvis em `0.2–0.4 uu`; `FullBody` permitiu aproximadamente
+  `39.3/46.7 uu` nos pés e `13.9 uu` na pelvis. O root permaneceu em `0` nas
+  duas rotas; trace, dano `-24`, recovery e retorno `false -> true -> false`
+  permaneceram corretos.
+- Na UE 5.8, `FAnimNode_BlendListByBool` seleciona child `1` para `false` e
+  child `0` para `true`. O asset e os testes estruturais preservam explicitamente
+  essa semântica: `false -> LayeredBoneBlend` e `true -> DefaultSlot` raw.

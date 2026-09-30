@@ -216,6 +216,19 @@ Pendente para concluir UE2.1:
   data-driven procedural parameters. `Quick` and `Wide` test definitions share
   `AM_KashmirSword_HorizontalB` and `DiagonalRising`; runtime, trace, damage and
   combat resolution remain unchanged.
+- **UE2.3.11 — Movement Intent v0.1:** `IMPLEMENTED / AUTOMATION VALIDATED /
+  PIE VALIDATED`. `CombatTechnique` declares whether its Base Motion participates
+  as `Stationary` (locomotion lower body plus montage overlay from `spine_01`)
+  or `FullBody` (unmasked montage pose). The resolved intent travels through the
+  Sword action plan into a transient AnimInstance snapshot and selects the route
+  before the post-montage `CR_KashmirSword`. Slots 1–4, Quick and Wide remain
+  `Stationary`; the unbound `Technique.Sword.Test.FullBody` proves the alternate
+  route. Movement Intent does not authorize displacement and does not change the
+  montage-only Root Motion policy, damage, WeaponTrace, HitEvidence or combat
+  resolution.
+  PIE confirmou lower body plantado na rota `Stationary`, participação corporal
+  da montage na rota `FullBody`, root estável em zero, damage `-24`, trace window,
+  recovery e retorno seguro `Stationary -> FullBody -> Stationary`.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova
