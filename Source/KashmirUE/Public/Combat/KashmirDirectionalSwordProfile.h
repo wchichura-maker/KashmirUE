@@ -5,6 +5,7 @@
 #include "Engine/DataAsset.h"
 
 #include "Combat/KashmirDirectionalSwordResolver.h"
+#include "Combat/KashmirCombatTechnique.h"
 #include "Combat/KashmirMeleeArchetype.h"
 #include "Combat/KashmirSwordPoseResolver.h"
 #include "Runtime/KashmirActionRuntime.h"
@@ -97,6 +98,10 @@ struct KASHMIRUE_API FKashmirSwordActionPlan
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     float PlayRate = 1.0f;
+
+    /** Presentation route selected by the resolved Technique, never gameplay authority. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    EKashmirMovementIntent MovementIntent = EKashmirMovementIntent::Stationary;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FKashmirSwordPoseConfig PoseConfig;

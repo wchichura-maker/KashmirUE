@@ -137,6 +137,15 @@ bool UKashmirAnimInstance::IsForceNeutralSwordRigInputsEnabled() const
 }
 
 
+void UKashmirAnimInstance::SetSwordMovementIntent(
+    const EKashmirMovementIntent InMovementIntent)
+{
+    SwordMovementIntent = InMovementIntent;
+    bUseFullBodySwordMontage =
+        SwordMovementIntent == EKashmirMovementIntent::FullBody;
+}
+
+
 FKashmirSwordRigInputs UKashmirAnimInstance::GetSwordRigInputs() const
 {
     FKashmirSwordRigInputs Inputs;

@@ -2,6 +2,7 @@
 
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "KashmirAnimInstance.h"
 
 
 namespace
@@ -171,6 +172,12 @@ bool UKashmirSwordPresentationComponent::ApplyRuntimeState(
         return false;
     }
 
+    if (UKashmirAnimInstance* KashmirAnimInstance =
+            Cast<UKashmirAnimInstance>(AnimInstance))
+    {
+        KashmirAnimInstance->SetSwordMovementIntent(Plan.MovementIntent);
+    }
+
     UAnimMontage* Montage = ExpectedMontage;
     if (Montage == nullptr)
     {
@@ -216,11 +223,20 @@ bool UKashmirSwordPresentationComponent::ApplyRuntimeState(
 
 void UKashmirSwordPresentationComponent::StopPresentation(float BlendOutSeconds)
 {
-    if (SkeletalMesh != nullptr && ActiveMontage != nullptr)
+    if (SkeletalMesh != nullptr)
     {
         if (UAnimInstance* AnimInstance = SkeletalMesh->GetAnimInstance())
         {
-            AnimInstance->Montage_Stop(FMath::Max(0.0f, BlendOutSeconds), ActiveMontage);
+            if (ActiveMontage != nullptr)
+            {
+                AnimInstance->Montage_Stop(FMath::Max(0.0f, BlendOutSeconds), ActiveMontage);
+            }
+            if (UKashmirAnimInstance* KashmirAnimInstance =
+                    Cast<UKashmirAnimInstance>(AnimInstance))
+            {
+                KashmirAnimInstance->SetSwordMovementIntent(
+                    EKashmirMovementIntent::Stationary);
+            }
         }
     }
 

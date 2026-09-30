@@ -7,6 +7,7 @@
 #include "Animation/AnimBlueprint.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "AnimGraphNode_BlendListByBool.h"
 #include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimGraphNode_Slot.h"
 #include "EdGraph/EdGraph.h"
@@ -61,6 +62,38 @@ namespace
             [To](const UEdGraphPin* Pin)
             {
                 return Pin != nullptr && Pin->GetOwningNode() == To;
+            });
+    }
+
+    bool HasPoseLinkToNamedInput(
+        UEdGraphNode* From,
+        UEdGraphNode* To,
+        const FName InputPinName)
+    {
+        UEdGraphPin* Output = FindPosePin(From, EGPD_Output);
+        UEdGraphPin* Input = To != nullptr
+            ? To->FindPin(InputPinName, EGPD_Input)
+            : nullptr;
+        return Output != nullptr && Input != nullptr &&
+            Output->LinkedTo.Contains(Input);
+    }
+
+    bool HasPoseLinkToLayeredOverlay(UEdGraphNode* From, UEdGraphNode* Layered)
+    {
+        UEdGraphPin* Output = FindPosePin(From, EGPD_Output);
+        if (Output == nullptr || Layered == nullptr)
+        {
+            return false;
+        }
+        return Layered->Pins.ContainsByPredicate(
+            [Output](const UEdGraphPin* Pin)
+            {
+                return Pin != nullptr && Pin->Direction == EGPD_Input &&
+                    Pin->PinName != TEXT("BasePose") &&
+                    Pin->PinType.PinCategory == TEXT("struct") &&
+                    Pin->PinType.PinSubCategoryObject.IsValid() &&
+                    Pin->PinType.PinSubCategoryObject->GetName() == TEXT("PoseLink") &&
+                    Output->LinkedTo.Contains(Pin);
             });
     }
 
@@ -289,6 +322,7 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
         TArray<UAnimGraphNode_Slot*> SlotNodes;
         UEdGraphNode* ControlRigNode = nullptr;
         UAnimGraphNode_LayeredBoneBlend* UpperBodyBlend = nullptr;
+        UAnimGraphNode_BlendListByBool* MovementIntentRoute = nullptr;
         UEdGraphNode* StateMachineNode = nullptr;
         UEdGraphNode* RootNode = nullptr;
         TArray<UEdGraph*> Graphs;
@@ -308,6 +342,11 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
                         Cast<UAnimGraphNode_LayeredBoneBlend>(Node))
                     {
                         UpperBodyBlend = Blend;
+                    }
+                    else if (UAnimGraphNode_BlendListByBool* BlendBool =
+                        Cast<UAnimGraphNode_BlendListByBool>(Node))
+                    {
+                        MovementIntentRoute = BlendBool;
                     }
                     else if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_StateMachine"))
                     {
@@ -329,17 +368,60 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
                 break;
             }
         }
+        // Resolve topology only inside the main AnimGraph that owns DefaultSlot;
+        // state-machine subgraphs may contain unrelated animation nodes.
+        if (DefaultSlot != nullptr && DefaultSlot->GetGraph() != nullptr)
+        {
+            UpperBodyBlend = nullptr;
+            MovementIntentRoute = nullptr;
+            ControlRigNode = nullptr;
+            StateMachineNode = nullptr;
+            RootNode = nullptr;
+            for (UEdGraphNode* Node : DefaultSlot->GetGraph()->Nodes)
+            {
+                if (UAnimGraphNode_LayeredBoneBlend* Blend =
+                    Cast<UAnimGraphNode_LayeredBoneBlend>(Node))
+                {
+                    UpperBodyBlend = Blend;
+                }
+                else if (UAnimGraphNode_BlendListByBool* BlendBool =
+                    Cast<UAnimGraphNode_BlendListByBool>(Node))
+                {
+                    MovementIntentRoute = BlendBool;
+                }
+                else if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_ControlRig"))
+                {
+                    ControlRigNode = Node;
+                }
+                else if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_StateMachine"))
+                {
+                    StateMachineNode = Node;
+                }
+                else if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_Root"))
+                {
+                    RootNode = Node;
+                }
+            }
+        }
         TestNotNull(TEXT("AnimBP evaluates the DefaultSlot montage track"), DefaultSlot);
         TestNotNull(TEXT("AnimBP contains the sword Control Rig node"), ControlRigNode);
         TestNotNull(TEXT("Stationary sword montage uses an upper-body layered blend"), UpperBodyBlend);
+        TestNotNull(TEXT("Movement Intent selects the montage body route"), MovementIntentRoute);
         TestTrue(TEXT("Locomotion state machine feeds DefaultSlot"),
             HasAnyDirectPoseLink(StateMachineNode, DefaultSlot));
-        TestTrue(TEXT("Locomotion also feeds the layered blend base"),
-            HasAnyDirectPoseLink(StateMachineNode, UpperBodyBlend));
-        TestTrue(TEXT("DefaultSlot feeds the layered upper-body pose"),
-            HasAnyDirectPoseLink(DefaultSlot, UpperBodyBlend));
-        TestTrue(TEXT("Sword Control Rig evaluates downstream of the layered blend"),
-            HasDirectPoseLink(UpperBodyBlend, ControlRigNode));
+        TestTrue(TEXT("Locomotion feeds the layered blend BasePose"),
+            HasPoseLinkToNamedInput(
+                StateMachineNode, UpperBodyBlend, TEXT("BasePose")));
+        TestTrue(TEXT("DefaultSlot feeds the layered non-base overlay pose"),
+            HasPoseLinkToLayeredOverlay(DefaultSlot, UpperBodyBlend));
+        TestTrue(TEXT("Stationary layered pose feeds bool child 1 (false)"),
+            HasPoseLinkToNamedInput(
+                UpperBodyBlend, MovementIntentRoute, TEXT("BlendPose_1")));
+        TestTrue(TEXT("FullBody slot pose feeds bool child 0 (true)"),
+            HasPoseLinkToNamedInput(
+                DefaultSlot, MovementIntentRoute, TEXT("BlendPose_0")));
+        TestTrue(TEXT("Sword Control Rig evaluates downstream of Movement Intent"),
+            HasDirectPoseLink(MovementIntentRoute, ControlRigNode));
         TestTrue(TEXT("Post-montage Control Rig feeds the final output pose"),
             HasDirectPoseLink(ControlRigNode, RootNode));
         if (UpperBodyBlend != nullptr)
@@ -348,6 +430,18 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
                 UpperBodyBlend->Node.LayerSetup.Num(), 1);
             TestTrue(TEXT("Upper-body blend uses mesh-space rotation"),
                 UpperBodyBlend->Node.bMeshSpaceRotationBlend);
+            TestEqual(TEXT("Upper-body montage layer weight is one"),
+                UpperBodyBlend->Node.BlendWeights.Num(), 1);
+            if (UpperBodyBlend->Node.BlendWeights.Num() == 1)
+            {
+                TestEqual(TEXT("Upper-body montage layer has full weight"),
+                    UpperBodyBlend->Node.BlendWeights[0], 1.0f);
+            }
+            TestEqual(TEXT("Upper-body curve blend uses Override"),
+                UpperBodyBlend->Node.CurveBlendOption.GetValue(),
+                ECurveBlendOption::Override);
+            TestTrue(TEXT("Root motion weight follows the root bone"),
+                UpperBodyBlend->Node.bBlendRootMotionBasedOnRootBone);
             TestTrue(TEXT("Upper-body blend has a branch filter"),
                 UpperBodyBlend->Node.LayerSetup.IsValidIndex(0) &&
                 UpperBodyBlend->Node.LayerSetup[0].BranchFilters.Num() == 1);

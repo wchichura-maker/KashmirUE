@@ -61,6 +61,18 @@ enum class EKashmirAttackShape : uint8
 };
 
 
+/** How a Technique's Base Motion participates in character presentation. */
+UENUM(BlueprintType)
+enum class EKashmirMovementIntent : uint8
+{
+    /** Locomotion owns the lower body; the montage overlays from spine_01. */
+    Stationary,
+
+    /** The montage may influence the entire body. This does not imply Root Motion. */
+    FullBody
+};
+
+
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirTechniqueRequest
 {
@@ -118,6 +130,10 @@ struct KASHMIRUE_API FKashmirCombatTechniqueDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0.0001"))
     float PlayRate = 1.0f;
+
+    /** Presentation participation only; independent of displacement and Root Motion policy. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EKashmirMovementIntent MovementIntent = EKashmirMovementIntent::Stationary;
 
     /**
      * Optional Sword presentation authored by this Technique.

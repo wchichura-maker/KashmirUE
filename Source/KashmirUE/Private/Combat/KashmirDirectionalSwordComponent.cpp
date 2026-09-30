@@ -300,6 +300,7 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
     Plan.Montage = TechniquePlan.Technique.Montage;
     Plan.MontageSection = TechniquePlan.Technique.MontageSection;
     Plan.PlayRate = TechniquePlan.Technique.PlayRate;
+    Plan.MovementIntent = TechniquePlan.Technique.MovementIntent;
     if (TechniquePlan.Technique.bOverrideSwordPresentation)
     {
         Plan.PoseConfig = TechniquePlan.Technique.SwordPresentation;

@@ -4,6 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "Combat/KashmirSwordRigAdapter.h"
 #include "Combat/KashmirSwordPoseResolver.h"
+#include "Combat/KashmirCombatTechnique.h"
 #include "KashmirAnimInstance.generated.h"
 
 class AKashmirCharacter;
@@ -33,6 +34,14 @@ public:
 
     UFUNCTION(BlueprintPure, Category="Animation|Debug|Directional Sword", meta=(DevelopmentOnly))
     bool IsForceNeutralSwordRigInputsEnabled() const;
+
+    /** Game-thread presentation snapshot; it never authorizes gameplay movement. */
+    void SetSwordMovementIntent(EKashmirMovementIntent InMovementIntent);
+
+    EKashmirMovementIntent GetSwordMovementIntent() const
+    {
+        return SwordMovementIntent;
+    }
 
 protected:
     UPROPERTY(BlueprintReadOnly, Category="Animation|Character")
@@ -102,6 +111,13 @@ protected:
 
     UPROPERTY(Transient, BlueprintReadOnly, Category="Animation|Combat|Directional Sword")
     float SwordRightFootLockAlpha = 0.0f;
+
+    /** Selects Stationary upper-body or FullBody montage presentation in the AnimGraph. */
+    UPROPERTY(Transient, BlueprintReadOnly, Category="Animation|Combat|Directional Sword")
+    EKashmirMovementIntent SwordMovementIntent = EKashmirMovementIntent::Stationary;
+
+    UPROPERTY(Transient, BlueprintReadOnly, Category="Animation|Combat|Directional Sword")
+    bool bUseFullBodySwordMontage = false;
 
 private:
     /** Transient presentation-only A/B lever; never consulted by gameplay systems. */
