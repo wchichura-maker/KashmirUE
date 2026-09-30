@@ -41,6 +41,13 @@ bool FKashmirCombatTechniqueDefinition::IsValid(FString& OutReason) const
         OutReason = TEXT("combat technique contains invalid numeric configuration");
         return false;
     }
+    if (bOverrideSwordPresentation && !SwordPresentation.IsValid(OutReason))
+    {
+        OutReason = FString::Printf(
+            TEXT("combat technique has invalid sword presentation: %s"),
+            *OutReason);
+        return false;
+    }
     if (RuntimeDefinition.ActionId != ActionId ||
         !RuntimeDefinition.IsValid(OutReason))
     {

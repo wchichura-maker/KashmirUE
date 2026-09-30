@@ -5,6 +5,7 @@
 #include "Contracts/KashmirActionContracts.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "Combat/KashmirSwordPoseResolver.h"
 #include "Runtime/KashmirActionRuntime.h"
 
 #include "KashmirCombatTechnique.generated.h"
@@ -117,6 +118,19 @@ struct KASHMIRUE_API FKashmirCombatTechniqueDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0.0001"))
     float PlayRate = 1.0f;
+
+    /**
+     * Optional Sword presentation authored by this Technique.
+     * It changes only the procedural pose layered over Base Motion; gameplay
+     * timing, trace, hit evidence, damage and combat resolution remain owned
+     * by their existing contracts.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bOverrideSwordPresentation = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        meta=(EditCondition="bOverrideSwordPresentation"))
+    FKashmirSwordPoseConfig SwordPresentation;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FKashmirActionDefinition RuntimeDefinition;

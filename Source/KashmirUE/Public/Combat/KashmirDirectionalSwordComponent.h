@@ -159,6 +159,13 @@ public:
         return ActivePlan;
     }
 
+    /** Last Technique dispatch rejection for Blueprint, Python and Aura diagnostics. */
+    UFUNCTION(BlueprintPure, Category="Combat|Technique")
+    FString GetLastTechniqueRequestReason() const
+    {
+        return LastTechniqueRequestReason;
+    }
+
     UPROPERTY(BlueprintAssignable, Category="Combat|Directional Sword")
     FKashmirDirectionalSwordContactSignature OnSwordContact;
 
@@ -191,6 +198,8 @@ private:
     bool bCapturingGesture = false;
 
     FKashmirSwordActionPlan ActivePlan;
+    UPROPERTY(Transient)
+    FString LastTechniqueRequestReason;
     TUniquePtr<FKashmirResourceRuntime> Resources;
     TUniquePtr<FKashmirActionRuntime> Runtime;
 };

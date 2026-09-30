@@ -268,22 +268,49 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
     FString& OutReason)
 {
     OutReason.Reset();
+    LastTechniqueRequestReason.Reset();
     if (Style == nullptr)
     {
         OutReason = TEXT("technique request requires a weapon combat style");
+        LastTechniqueRequestReason = OutReason;
         return false;
     }
 
     FKashmirTechniqueActionPlan TechniquePlan;
     if (!Style->ResolveTechnique(Request, TechniquePlan, OutReason))
     {
+        LastTechniqueRequestReason = OutReason;
         return false;
     }
 
-    // The existing profile remains a content adapter during migration. The
-    // generic style owns selection; the profile only supplies already-authored
-    // montage, pose, contact and combat data for that ActionId.
-    return StartActionRequest(TechniquePlan.ActionRequest, OutReason);
+    // The existing profile remains the runtime/combat adapter during migration.
+    // Technique data owns Base Motion and may override only presentation; it
+    // never replaces trace, damage, hit evidence or ActionRuntime authority.
+    FKashmirSwordActionPlan Plan;
+    if (Profile == nullptr ||
+        !Profile->ResolveActionPlan(
+            TechniquePlan.ActionRequest,
+            Plan,
+            OutReason))
+    {
+        LastTechniqueRequestReason = OutReason;
+        return false;
+    }
+
+    Plan.Montage = TechniquePlan.Technique.Montage;
+    Plan.MontageSection = TechniquePlan.Technique.MontageSection;
+    Plan.PlayRate = TechniquePlan.Technique.PlayRate;
+    if (TechniquePlan.Technique.bOverrideSwordPresentation)
+    {
+        Plan.PoseConfig = TechniquePlan.Technique.SwordPresentation;
+    }
+
+    const bool bStarted = StartResolvedPlan(Plan, OutReason);
+    if (!bStarted)
+    {
+        LastTechniqueRequestReason = OutReason;
+    }
+    return bStarted;
 }
 
 
@@ -297,11 +324,23 @@ bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
     }
 
     const FKashmirActionRuntimeState CurrentState = Runtime->GetState();
-    const bool bStarted = CurrentState.bActive
+    const bool bWasActive = CurrentState.bActive;
+    const bool bStarted = bWasActive
         ? Runtime->TryCancel(Plan.Gesture.ActionRequest, OutReason)
         : Runtime->Start(Plan.Gesture.ActionRequest, OutReason);
     if (!bStarted)
     {
+        if (bWasActive)
+        {
+            const FString RuntimeReason = OutReason.IsEmpty()
+                ? TEXT("runtime supplied no cancellation detail")
+                : OutReason;
+            OutReason = FString::Printf(
+                TEXT("ActionCannotBeCancelled: current=%s phase=%d; %s"),
+                *CurrentState.ActionId.ToString(),
+                static_cast<int32>(CurrentState.Phase),
+                *RuntimeReason);
+        }
         return false;
     }
 
