@@ -7,6 +7,7 @@
 #include "Animation/AnimBlueprint.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimGraphNode_Slot.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphNode.h"
@@ -47,6 +48,20 @@ namespace
         UEdGraphPin* Output = FindPosePin(From, EGPD_Output);
         UEdGraphPin* Input = FindPosePin(To, EGPD_Input);
         return Output != nullptr && Input != nullptr && Output->LinkedTo.Contains(Input);
+    }
+
+    bool HasAnyDirectPoseLink(UEdGraphNode* From, UEdGraphNode* To)
+    {
+        UEdGraphPin* Output = FindPosePin(From, EGPD_Output);
+        if (Output == nullptr || To == nullptr)
+        {
+            return false;
+        }
+        return Output->LinkedTo.ContainsByPredicate(
+            [To](const UEdGraphPin* Pin)
+            {
+                return Pin != nullptr && Pin->GetOwningNode() == To;
+            });
     }
 
     bool HasDirectValueLink(
@@ -273,6 +288,7 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
 
         TArray<UAnimGraphNode_Slot*> SlotNodes;
         UEdGraphNode* ControlRigNode = nullptr;
+        UAnimGraphNode_LayeredBoneBlend* UpperBodyBlend = nullptr;
         UEdGraphNode* StateMachineNode = nullptr;
         UEdGraphNode* RootNode = nullptr;
         TArray<UEdGraph*> Graphs;
@@ -287,6 +303,11 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
                     if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_ControlRig"))
                     {
                         ControlRigNode = Node;
+                    }
+                    else if (UAnimGraphNode_LayeredBoneBlend* Blend =
+                        Cast<UAnimGraphNode_LayeredBoneBlend>(Node))
+                    {
+                        UpperBodyBlend = Blend;
                     }
                     else if (Node != nullptr && Node->GetClass()->GetName() == TEXT("AnimGraphNode_StateMachine"))
                     {
@@ -310,12 +331,37 @@ bool FKashmirDirectionalSwordBaselineAssetsTest::RunTest(
         }
         TestNotNull(TEXT("AnimBP evaluates the DefaultSlot montage track"), DefaultSlot);
         TestNotNull(TEXT("AnimBP contains the sword Control Rig node"), ControlRigNode);
+        TestNotNull(TEXT("Stationary sword montage uses an upper-body layered blend"), UpperBodyBlend);
         TestTrue(TEXT("Locomotion state machine feeds DefaultSlot"),
-            HasDirectPoseLink(StateMachineNode, DefaultSlot));
-        TestTrue(TEXT("Sword Control Rig evaluates downstream of DefaultSlot"),
-            HasDirectPoseLink(DefaultSlot, ControlRigNode));
+            HasAnyDirectPoseLink(StateMachineNode, DefaultSlot));
+        TestTrue(TEXT("Locomotion also feeds the layered blend base"),
+            HasAnyDirectPoseLink(StateMachineNode, UpperBodyBlend));
+        TestTrue(TEXT("DefaultSlot feeds the layered upper-body pose"),
+            HasAnyDirectPoseLink(DefaultSlot, UpperBodyBlend));
+        TestTrue(TEXT("Sword Control Rig evaluates downstream of the layered blend"),
+            HasDirectPoseLink(UpperBodyBlend, ControlRigNode));
         TestTrue(TEXT("Post-montage Control Rig feeds the final output pose"),
             HasDirectPoseLink(ControlRigNode, RootNode));
+        if (UpperBodyBlend != nullptr)
+        {
+            TestEqual(TEXT("Upper-body blend has one montage layer"),
+                UpperBodyBlend->Node.LayerSetup.Num(), 1);
+            TestTrue(TEXT("Upper-body blend uses mesh-space rotation"),
+                UpperBodyBlend->Node.bMeshSpaceRotationBlend);
+            TestTrue(TEXT("Upper-body blend has a branch filter"),
+                UpperBodyBlend->Node.LayerSetup.IsValidIndex(0) &&
+                UpperBodyBlend->Node.LayerSetup[0].BranchFilters.Num() == 1);
+            if (UpperBodyBlend->Node.LayerSetup.IsValidIndex(0) &&
+                UpperBodyBlend->Node.LayerSetup[0].BranchFilters.Num() == 1)
+            {
+                const FBranchFilter& Filter =
+                    UpperBodyBlend->Node.LayerSetup[0].BranchFilters[0];
+                TestEqual(TEXT("Stationary attack overlay starts at spine_01"),
+                    Filter.BoneName, FName(TEXT("spine_01")));
+                TestEqual(TEXT("Upper-body branch reaches full weight immediately"),
+                    Filter.BlendDepth, 1);
+            }
+        }
 
         const TMap<FName, FName> InputMapping = ReadControlRigInputMapping(ControlRigNode);
         TestEqual(TEXT("Control Rig no longer depends on animation-curve mappings"),
