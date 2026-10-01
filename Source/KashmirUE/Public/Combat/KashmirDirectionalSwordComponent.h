@@ -77,6 +77,36 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
     Contact);
 
 
+UENUM(BlueprintType)
+enum class EKashmirPendingTechniqueClearReason : uint8
+{
+    None,
+    Consumed,
+    Expired,
+    SourceEnded,
+    SourceChanged,
+    Superseded,
+    Invalid,
+    WindowMissed,
+    Cancelled,
+    ResourceFailure
+};
+
+
+struct FKashmirPendingTechniqueRequestState
+{
+    FKashmirTechniqueRequest Request;
+    TWeakObjectPtr<const UKashmirWeaponCombatStyle> Style;
+    FName TechniqueId;
+    FName SourceActionId;
+    FName SourceTechniqueId;
+    uint64 SourceExecutionSerial = 0;
+    float BufferedAtActionElapsed = 0.0f;
+    float Age = 0.0f;
+    float Lifetime = 0.0f;
+};
+
+
 /**
  * Migration adapter for the authored sword prototype. Technique requests are
  * the product authority; legacy gesture entry points remain only until their
@@ -91,6 +121,7 @@ public:
     UKashmirDirectionalSwordComponent();
 
     virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     virtual void TickComponent(
         float DeltaTime,
         ELevelTick TickType,
@@ -177,6 +208,64 @@ public:
         return LastTechniqueRequestReason;
     }
 
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    bool HasPendingTechniqueRequest() const
+    {
+        return PendingTechniqueRequest.IsSet();
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    EKashmirTechniqueSlot GetPendingTechniqueSlot() const
+    {
+        return PendingTechniqueRequest.IsSet()
+            ? PendingTechniqueRequest->Request.Slot
+            : EKashmirTechniqueSlot::None;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    FName GetPendingTechniqueId() const
+    {
+        return PendingTechniqueRequest.IsSet()
+            ? PendingTechniqueRequest->TechniqueId
+            : NAME_None;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    EKashmirTechniqueRequestSource GetPendingTechniqueSource() const
+    {
+        return PendingTechniqueRequest.IsSet()
+            ? PendingTechniqueRequest->Request.Source
+            : EKashmirTechniqueRequestSource::Player;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    float GetPendingTechniqueAge() const
+    {
+        return PendingTechniqueRequest.IsSet() ? PendingTechniqueRequest->Age : 0.0f;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    float GetPendingTechniqueBufferedAtActionElapsed() const
+    {
+        return PendingTechniqueRequest.IsSet()
+            ? PendingTechniqueRequest->BufferedAtActionElapsed
+            : 0.0f;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    float GetPendingTechniqueLifetime() const
+    {
+        return PendingTechniqueRequest.IsSet()
+            ? PendingTechniqueRequest->Lifetime
+            : TechniqueRequestBufferLifetime;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Technique|Debug", meta=(DevelopmentOnly))
+    EKashmirPendingTechniqueClearReason GetLastPendingTechniqueClearReason() const
+    {
+        return LastPendingTechniqueClearReason;
+    }
+
     UPROPERTY(BlueprintAssignable, Category="Combat|Directional Sword")
     FKashmirDirectionalSwordContactSignature OnSwordContact;
 
@@ -187,8 +276,45 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Directional Sword")
     TArray<FKashmirResourcePool> InitialResources;
 
+    /** Single-intent early input buffer. It never widens an authored transition window. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Technique Buffer",
+        meta=(ClampMin="0.0", Units="s"))
+    float TechniqueRequestBufferLifetime = 0.20f;
+
 private:
+    enum class ETechniqueBufferAttempt : uint8
+    {
+        NotApplicable,
+        Buffered,
+        Rejected
+    };
+
     bool RebuildRuntime(FString& OutReason);
+    bool ResolveTechniqueRequestPlan(
+        const FKashmirTechniqueRequest& Request,
+        const UKashmirWeaponCombatStyle* Style,
+        FKashmirTechniqueActionPlan& OutTechniquePlan,
+        FKashmirSwordActionPlan& OutPlan,
+        FString& OutReason) const;
+    ETechniqueBufferAttempt TryBufferTechniqueRequest(
+        const FKashmirTechniqueRequest& Request,
+        const UKashmirWeaponCombatStyle* Style,
+        const FKashmirTechniqueActionPlan& TechniquePlan,
+        const FKashmirActionRuntimeState& CurrentState,
+        FString& OutReason);
+    bool FindFutureTechniqueTransition(
+        const UKashmirWeaponCombatStyle* Style,
+        FName FromTechniqueId,
+        FName ToTechniqueId,
+        float Elapsed,
+        float MaximumWait,
+        float SourceActionLifetime,
+        const FGameplayTagContainer& ContextTags,
+        FKashmirTechniqueTransitionRule& OutRule,
+        bool& bOutRelevantRuleExists,
+        bool& bOutWindowMissed) const;
+    void UpdatePendingTechniqueRequest(float DeltaSeconds);
+    void ClearPendingTechniqueRequest(EKashmirPendingTechniqueClearReason Reason);
     bool StartResolvedPlan(
         const FKashmirSwordActionPlan& Plan,
         FString& OutReason);
@@ -222,6 +348,11 @@ private:
     bool bCapturingGesture = false;
 
     FKashmirSwordActionPlan ActivePlan;
+    TOptional<FKashmirPendingTechniqueRequestState> PendingTechniqueRequest;
+    uint64 ActionExecutionSerial = 0;
+    UPROPERTY(Transient)
+    EKashmirPendingTechniqueClearReason LastPendingTechniqueClearReason =
+        EKashmirPendingTechniqueClearReason::None;
     UPROPERTY(Transient)
     FString LastTechniqueRequestReason;
     TUniquePtr<FKashmirResourceRuntime> Resources;

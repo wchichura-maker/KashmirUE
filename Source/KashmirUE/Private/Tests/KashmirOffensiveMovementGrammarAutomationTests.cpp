@@ -14,7 +14,8 @@ namespace
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirSword_CombatStyle_Baseline.")
         TEXT("DA_KashmirSword_CombatStyle_Baseline");
-    const FName StepForwardTechniqueId(TEXT("Technique.Sword.Test.StepForward"));
+    const FName OffensiveMovementStepForwardTechniqueId(
+        TEXT("Technique.Sword.Test.StepForward"));
 
     const UKashmirWeaponCombatStyle* LoadOffensiveMovementStyle()
     {
@@ -29,7 +30,8 @@ namespace
             ? Style->Techniques.FindByPredicate(
                 [](const FKashmirCombatTechniqueDefinition& Technique)
                 {
-                    return Technique.TechniqueId == StepForwardTechniqueId;
+                    return Technique.TechniqueId ==
+                        OffensiveMovementStepForwardTechniqueId;
                 })
             : nullptr;
     }
@@ -197,7 +199,7 @@ bool FOffensiveMovementRuntimeGenericTest::RunTest(const FString& Parameters)
     {
         TestFalse(TEXT("Runtime source was loaded"), Source.IsEmpty());
         TestFalse(TEXT("Runtime does not branch on StepForward id"),
-            Source.Contains(StepForwardTechniqueId.ToString()));
+            Source.Contains(OffensiveMovementStepForwardTechniqueId.ToString()));
     }
     return true;
 }

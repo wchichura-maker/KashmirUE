@@ -813,3 +813,73 @@
 - Futuro: input buffering/early queue, combat-outcome conditions, graph editing,
   aerial/cast/counter transitions, Ultimate phase orchestration e transitions
   geradas/desbloqueadas por progression.
+
+## UE-0032 — Technique Request Buffer preserva intenção, não execução resolvida
+
+- **Status da decisão:** **DECIDED** em 2026-10-01.
+- **Status técnico:** v0.1 **IMPLEMENTED / AUTOMATION VALIDATED / PIE VALIDATED**.
+- `UKashmirDirectionalSwordComponent` é owner do lifecycle do buffer.
+  `ActionRuntime` permanece sem `TechniqueId`, pending request ou branches de
+  arma; seu `Elapsed` continua sendo o relógio autoritativo da Transition Window.
+- O buffer guarda uma `FKashmirTechniqueRequest`, Style, Technique destino,
+  identidade da execução fonte, elapsed de captura, idade e lifetime. Ele não
+  guarda `ActionId` como identidade da intenção, montage, animation, combo step
+  ou um `FKashmirTechniqueActionPlan` resolvido como autoridade final.
+- Existe somente um pending request. A política é `latest valid request wins`;
+  repetir a mesma request renova sua idade. Não existe FIFO, array ou combo queue.
+- O lifetime default é `0.20 s`: suficiente para uma request em aproximadamente
+  `0.20–0.25 s` alcançar a abertura em `0.320 s`, mas curto demais para uma
+  intenção no início sobreviver quase toda a Action. A idade acumula o mesmo
+  `DeltaSeconds` determinístico passado a `AdvanceRuntime`, separadamente de
+  `ActionRuntime::Elapsed`.
+- Expiração precede elegibilidade: se `PendingAge > Lifetime`, o pending é limpo
+  antes de verificar se a Transition Window acabou de abrir. Um frame longo não
+  pode ressuscitar intenção expirada. Em PIE, uma request capturada no primeiro
+  instante bufferable, seguida de `AdvanceRuntime(0.21)`, levou o source elapsed
+  a `0.330`, limpou como `Expired` e não iniciou B.
+- A execução fonte usa serial local monotônico do DirectionalSword, mais
+  `SourceActionId` e `SourceTechniqueId`. Isso impede vazamento entre reinícios,
+  Techniques que compartilham ActionId e Actions posteriores não relacionadas.
+- Buffering só ocorre quando há Technique ativa, a request resolve, existe regra
+  `ActiveTechnique -> RequestedTechnique`, tags atuais passam pelo resolver do
+  Style, a janela ainda está no futuro, cabe no lifetime e abre antes do fim da
+  Action fonte. Não há previsão de tags futuras.
+- Dentro da janela, a transition é imediata. Depois de `MaxElapsed`, a request é
+  rejeitada e não é carregada adiante. Requests cedo demais para caber no buffer
+  preservam o comportamento anterior de cancel/reject; o buffer não vira um novo
+  gate global.
+- No consumo, a request é resolvida novamente pelo WeaponCombatStyle e pelo
+  profile. Falha de resource/preflight descarta o pending como `ResourceFailure`,
+  mantém A intacta e não executa fallback oculto para `TryCancel()`.
+- Pending é limpo por consumo, expiração, término/mudança da execução fonte,
+  transition para outro destino, cancelamento explícito, invalidation, janela
+  perdida, troca/reset de profile ou EndPlay.
+- A infraestrutura preserva `Player`, `AI`, `Replay` e `Network` sem branches por
+  Source. Slot5 e StepForward continuam unbound; o asset baseline e a janela
+  persistente `[0.320, 0.470] s` não foram alterados.
+- Observabilidade development-only expõe presença, Slot, TechniqueId, Source,
+  idade, elapsed de captura, lifetime e clear reason determinístico.
+- Evidência: full `KashmirUEEditor` build; TechniqueRequestBuffer 7/7 cobrindo as
+  25 propriedades requeridas; TechniqueTransitionGrammar 9/9;
+  CombatMotionGrammar 12/12; OffensiveMovementGrammar 10/10; StepForward 19/19;
+  MovementDeliveryRuntime 19/19; MovementDelivery 5/5; MovementIntent 6/6;
+  PlayableGrammar 13/13; DirectionalSword 19/19; Combat 190/190; Foundation 6/6.
+- Evidência PIE: probes before-window em `0.22`, `0.24` e `0.30` permaneceram
+  pending e foram consumidos automaticamente em `0.320`; o limite inicial
+  bufferable foi `0.120`, enquanto `0.06` e `0.10` não criaram pending. Requests
+  em `0.36` e `0.44` transicionaram imediatamente; `0.50` retornou
+  `TechniqueTransitionWindowMissed`. Repetição em `0.22 -> 0.27` preservou um
+  único pending, renovou age/captured elapsed e terminou como `Consumed`; Slot5
+  e os casos expired/stale permaneceram seguros.
+- Evidência de combate PIE: a sequência real reduziu health `100 -> 76 -> 52`,
+  com `24` damage por hit, e abriu trace generations `23 -> 24 -> 25` no mesmo
+  target. O pawn permaneceu em `(0, 0, 98.1501)`; posição do target e health
+  foram alterações somente de PIE, sem persistência em asset/mapa.
+- Limitação conhecida não bloqueante: o diagnóstico do Character ainda descreve
+  uma request aceita no buffer com a Action fonte/como iniciada antes de B
+  realmente iniciar. Gameplay está correto; semântica de observabilidade e
+  request-result fica para trabalho futuro. Polimento visual contínuo da
+  transition também não foi validado.
+- Futuro: semântica de logging/request-result, polimento visual contínuo,
+  buffering condicionado a resultados de combate, prediction/network/rollback,
+  AI behavior e graph/queue de combos permanecem fora do v0.1.

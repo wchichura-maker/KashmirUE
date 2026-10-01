@@ -328,6 +328,28 @@ Pendente para concluir UE2.1:
   graph authoring avançado e smoothness/blend visual por vídeo contínuo
   permanecem `PENDING`. A suíte dedicada passa 9/9, Combat 183/183 e Foundation
   6/6.
+- **UE2.3.17 — Technique Request Buffer v0.1:** `IMPLEMENTED / AUTOMATION
+  VALIDATED / PIE VALIDATED`.
+  `UKashmirDirectionalSwordComponent` mantém uma única intenção de Technique
+  pending, com `latest valid request wins`, re-resolution no consumo, serial
+  local da execução fonte e lifetime default de `0.20 s`. A idade usa o mesmo
+  update determinístico de `AdvanceRuntime`; a Transition Window continua usando
+  exclusivamente `ActionRuntime::Elapsed` e não é ampliada. Requests before-window
+  que cabem no lifetime são buffered; dentro da janela executam imediatamente;
+  depois da janela são rejeitadas. Falha de resource descarta o pending sem
+  destruir A nem fazer cancel fallback. Não há FIFO, combo queue, animation-time
+  authority, prediction ou branches por Source. O baseline Slot1 -> Slot2
+  `[0.320, 0.470] s`, StepForward e Slot5 permanecem inalterados. A suíte
+  TechniqueRequestBuffer passa 7/7 cobrindo 25 propriedades; Combat passa
+  190/190 e Foundation 6/6. PIE confirmou buffering em `0.22 / 0.24 / 0.30`,
+  consumo automático ao abrir em `0.320`, execução imediata dentro da janela,
+  rejeição segura antes de `0.120` e depois de `0.470`, refresh por repetição,
+  expiração e ausência de pending stale. Expiração ocorre antes da elegibilidade:
+  o probe inicial mais `AdvanceRuntime(0.21)` chegou a source elapsed `0.330`,
+  limpou como `Expired` e não iniciou B. A sequência real aplicou health
+  `100 -> 76 -> 52` e trace generations `23 -> 24 -> 25`, sem deslocar o pawn
+  nem persistir estado de PIE. A semântica do log de request buffered e o
+  polimento visual contínuo permanecem `PENDING` e não bloqueiam o runtime v0.1.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova
