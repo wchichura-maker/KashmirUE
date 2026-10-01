@@ -417,6 +417,37 @@ void AKashmirCharacter::HandleSwordContact(
     {
         UE_LOG(LogTemp, Verbose,
             TEXT("Directional melee application rejected: %s"), *Reason);
+        return;
+    }
+
+    FKashmirCombatOutcomeContact OutcomeContact;
+    OutcomeContact.TargetId = Input.TargetId;
+    OutcomeContact.bBlocked = Result.Defense.DefenseResult.bBlocked;
+    OutcomeContact.bParried = Result.Defense.DefenseResult.bParried;
+    OutcomeContact.bGuardBroken = Result.Defense.DefenseResult.bGuardBroken;
+    OutcomeContact.CombatResult = Result.Defense.HitResult.CombatResult;
+    const int32 EffectCount = FMath::Min(
+        OutcomeContact.CombatResult.Effects.Num(),
+        Application.Effects.Num());
+    for (int32 EffectIndex = 0; EffectIndex < EffectCount; ++EffectIndex)
+    {
+        const FKashmirEffectResult& Effect =
+            OutcomeContact.CombatResult.Effects[EffectIndex];
+        const FKashmirEffectApplicationResult& Applied =
+            Application.Effects[EffectIndex];
+        if (Effect.Resolution == EKashmirResolutionType::Damage &&
+            Applied.bApplied && Applied.AppliedMagnitude > 0.0f)
+        {
+            OutcomeContact.bDamageApplied = true;
+            OutcomeContact.DamageApplied += Applied.AppliedMagnitude;
+        }
+    }
+    if (DirectionalSwordComponent != nullptr &&
+        !DirectionalSwordComponent->RecordCombatOutcomeContact(
+            OutcomeContact, Reason))
+    {
+        UE_LOG(LogTemp, Verbose,
+            TEXT("Combat outcome evidence rejected: %s"), *Reason);
     }
 }
 

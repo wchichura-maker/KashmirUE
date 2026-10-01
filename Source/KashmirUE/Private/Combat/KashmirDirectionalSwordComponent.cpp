@@ -92,6 +92,7 @@ void UKashmirDirectionalSwordComponent::BeginPlay()
 void UKashmirDirectionalSwordComponent::EndPlay(
     const EEndPlayReason::Type EndPlayReason)
 {
+    FinalizeCombatOutcome(EKashmirCombatOutcomeFinalizationReason::Interrupted);
     ClearPendingTechniqueRequest(EKashmirPendingTechniqueClearReason::SourceEnded);
     Super::EndPlay(EndPlayReason);
 }
@@ -100,6 +101,7 @@ void UKashmirDirectionalSwordComponent::EndPlay(
 void UKashmirDirectionalSwordComponent::SetProfile(
     UKashmirDirectionalSwordProfile* InProfile)
 {
+    FinalizeCombatOutcome(EKashmirCombatOutcomeFinalizationReason::Interrupted);
     ClearPendingTechniqueRequest(EKashmirPendingTechniqueClearReason::SourceChanged);
     if (WeaponTraceComponent != nullptr &&
         WeaponTraceComponent->IsTraceWindowActive())
@@ -789,9 +791,14 @@ bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
 
     ClearPendingTechniqueRequest(
         EKashmirPendingTechniqueClearReason::SourceChanged);
+    if (bWasActive)
+    {
+        FinalizeCombatOutcome(EKashmirCombatOutcomeFinalizationReason::Interrupted);
+    }
     ++ActionExecutionSerial;
     ActivePlan = Plan;
     const FKashmirActionRuntimeState StartedState = Runtime->GetState();
+    BeginCombatOutcome(StartedState);
     if (MovementDeliveryComponent != nullptr &&
         !MovementDeliveryComponent->StartDelivery(
             Plan.MovementSpec, StartedState.ActionId, OutReason))
@@ -850,6 +857,7 @@ bool UKashmirDirectionalSwordComponent::TryTransitionTechnique(
         return false;
     }
 
+    FinalizeCombatOutcome(EKashmirCombatOutcomeFinalizationReason::Transitioned);
     ++ActionExecutionSerial;
     if (WeaponTraceComponent != nullptr)
     {
@@ -866,6 +874,7 @@ bool UKashmirDirectionalSwordComponent::TryTransitionTechnique(
 
     ActivePlan = Plan;
     const FKashmirActionRuntimeState DestinationState = Runtime->GetState();
+    BeginCombatOutcome(DestinationState);
     if (MovementDeliveryComponent != nullptr &&
         !MovementDeliveryComponent->StartDelivery(
             Plan.MovementSpec,
@@ -919,6 +928,7 @@ bool UKashmirDirectionalSwordComponent::CancelCurrentAction(FString& OutReason)
     {
         MovementDeliveryComponent->CancelDelivery();
     }
+    FinalizeCombatOutcome(EKashmirCombatOutcomeFinalizationReason::Interrupted);
     ClearPendingTechniqueRequest(
         EKashmirPendingTechniqueClearReason::Cancelled);
     const FKashmirActionRuntimeState CancelledState = Runtime->GetState();
@@ -1034,6 +1044,31 @@ bool UKashmirDirectionalSwordComponent::SampleWeaponTrace(
 }
 
 
+bool UKashmirDirectionalSwordComponent::RecordCombatOutcomeContact(
+    const FKashmirCombatOutcomeContact& Contact,
+    FString& OutReason)
+{
+    return CombatOutcome.RecordContact(Contact, OutReason);
+}
+
+
+void UKashmirDirectionalSwordComponent::BeginCombatOutcome(
+    const FKashmirActionRuntimeState& RuntimeState)
+{
+    CombatOutcome.BeginExecution(
+        static_cast<int64>(ActionExecutionSerial),
+        ActivePlan.TechniqueId,
+        RuntimeState.ActionId);
+}
+
+
+void UKashmirDirectionalSwordComponent::FinalizeCombatOutcome(
+    const EKashmirCombatOutcomeFinalizationReason Reason)
+{
+    CombatOutcome.Finalize(Reason);
+}
+
+
 void UKashmirDirectionalSwordComponent::TickComponent(
     float DeltaTime,
     ELevelTick TickType,
@@ -1096,6 +1131,7 @@ bool UKashmirDirectionalSwordComponent::AdvanceRuntime(
     ApplyPresentation(RuntimeState);
     if (!RuntimeState.bActive)
     {
+        FinalizeCombatOutcome(EKashmirCombatOutcomeFinalizationReason::Completed);
         ActivePlan = {};
     }
     return true;

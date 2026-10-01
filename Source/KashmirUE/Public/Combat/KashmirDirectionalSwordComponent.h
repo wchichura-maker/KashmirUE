@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 
 #include "Combat/KashmirCombatTechnique.h"
+#include "Combat/KashmirCombatOutcomeEvidence.h"
 #include "Combat/KashmirDirectionalSwordProfile.h"
 #include "Combat/KashmirWeaponTraceComponent.h"
 #include "Runtime/KashmirActionRuntime.h"
@@ -201,6 +202,143 @@ public:
         return ActivePlan;
     }
 
+    /** Observes one fully resolved/applied contact for the active execution. */
+    bool RecordCombatOutcomeContact(
+        const FKashmirCombatOutcomeContact& Contact,
+        FString& OutReason);
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    bool HasCurrentExecutionOutcome() const
+    {
+        return CombatOutcome.HasCurrent();
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    FKashmirCombatExecutionOutcome GetCurrentExecutionOutcome() const
+    {
+        return CombatOutcome.HasCurrent()
+            ? CombatOutcome.GetCurrent()
+            : FKashmirCombatExecutionOutcome{};
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    bool HasLastFinalizedExecutionOutcome() const
+    {
+        return CombatOutcome.HasLastFinalized();
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    FKashmirCombatExecutionOutcome GetLastFinalizedExecutionOutcome() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized()
+            : FKashmirCombatExecutionOutcome{};
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    bool HasCurrentCombatOutcome() const
+    {
+        return CombatOutcome.HasCurrent();
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    int64 GetCurrentCombatOutcomeExecutionSerial() const
+    {
+        return CombatOutcome.HasCurrent() ? CombatOutcome.GetCurrent().ExecutionSerial : 0;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    FName GetCurrentCombatOutcomeTechniqueId() const
+    {
+        return CombatOutcome.HasCurrent() ? CombatOutcome.GetCurrent().TechniqueId : NAME_None;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    FName GetCurrentCombatOutcomeActionId() const
+    {
+        return CombatOutcome.HasCurrent() ? CombatOutcome.GetCurrent().ActionId : NAME_None;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    int32 GetCurrentCombatOutcomeContactCount() const
+    {
+        return CombatOutcome.HasCurrent() ? CombatOutcome.GetCurrent().ContactCount : 0;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    int32 GetCurrentCombatOutcomeUniqueTargetCount() const
+    {
+        return CombatOutcome.HasCurrent() ? CombatOutcome.GetCurrent().UniqueTargetCount : 0;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    float GetCurrentCombatOutcomeTotalDamageApplied() const
+    {
+        return CombatOutcome.HasCurrent() ? CombatOutcome.GetCurrent().TotalDamageApplied : 0.0f;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    FName GetCurrentCombatOutcomeLastTargetId() const
+    {
+        return CombatOutcome.HasCurrent() ? CombatOutcome.GetCurrent().LastTargetId : NAME_None;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    bool HasLastFinalizedCombatOutcome() const
+    {
+        return CombatOutcome.HasLastFinalized();
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    int64 GetLastFinalizedCombatOutcomeExecutionSerial() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized().ExecutionSerial : 0;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    FName GetLastFinalizedCombatOutcomeTechniqueId() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized().TechniqueId : NAME_None;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    FName GetLastFinalizedCombatOutcomeActionId() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized().ActionId : NAME_None;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    int32 GetLastFinalizedCombatOutcomeContactCount() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized().ContactCount : 0;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    int32 GetLastFinalizedCombatOutcomeUniqueTargetCount() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized().UniqueTargetCount : 0;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    float GetLastFinalizedCombatOutcomeTotalDamageApplied() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized().TotalDamageApplied : 0.0f;
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Outcome|Debug", meta=(DevelopmentOnly))
+    EKashmirCombatOutcomeFinalizationReason GetLastFinalizedCombatOutcomeReason() const
+    {
+        return CombatOutcome.HasLastFinalized()
+            ? CombatOutcome.GetLastFinalized().FinalizationReason
+            : EKashmirCombatOutcomeFinalizationReason::None;
+    }
+
     /** Last Technique dispatch rejection for Blueprint, Python and Aura diagnostics. */
     UFUNCTION(BlueprintPure, Category="Combat|Technique")
     FString GetLastTechniqueRequestReason() const
@@ -333,6 +471,8 @@ private:
         const FKashmirActionRuntimeState& PreviousState,
         const FKashmirActionRuntimeState& CurrentState);
     bool SampleWeaponTrace(float DeltaSeconds, FString& OutReason);
+    void BeginCombatOutcome(const FKashmirActionRuntimeState& RuntimeState);
+    void FinalizeCombatOutcome(EKashmirCombatOutcomeFinalizationReason Reason);
 
     UPROPERTY(Transient)
     TObjectPtr<UKashmirSwordPresentationComponent> PresentationComponent;
@@ -350,6 +490,7 @@ private:
     FKashmirSwordActionPlan ActivePlan;
     TOptional<FKashmirPendingTechniqueRequestState> PendingTechniqueRequest;
     uint64 ActionExecutionSerial = 0;
+    FKashmirCombatOutcomeAccumulator CombatOutcome;
     UPROPERTY(Transient)
     EKashmirPendingTechniqueClearReason LastPendingTechniqueClearReason =
         EKashmirPendingTechniqueClearReason::None;

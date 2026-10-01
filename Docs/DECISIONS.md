@@ -883,3 +883,64 @@
 - Futuro: semântica de logging/request-result, polimento visual contínuo,
   buffering condicionado a resultados de combate, prediction/network/rollback,
   AI behavior e graph/queue de combos permanecem fora do v0.1.
+
+## UE-0033 — Combat Outcome Evidence é escopo de execução, não de contato
+
+- **Status da decisão:** **DECIDED** em 2026-10-01.
+- **Status técnico:** v0.1 **IMPLEMENTED / AUTOMATION VALIDATED / PIE
+  VALIDATED**.
+- `FKashmirHitEvidence`, defense resolution, `FKashmirCombatResult` e
+  `FKashmirCombatantApplicationResult` continuam sendo as verdades do contato.
+  `FKashmirCombatExecutionOutcome` é somente o resumo acumulado do que esses
+  contratos provaram durante uma execução iniciada.
+- O contrato e `FKashmirCombatOutcomeAccumulator` são genéricos. Na integração
+  v0.1, `UKashmirDirectionalSwordComponent` possui `current + last finalized`
+  porque já orquestra Technique, ActionRuntime, trace, delivery e presentation.
+  `WeaponTrace` permanece acquisition-only e `ActionRuntime` permanece outcome-
+  agnostic.
+- A identidade reutiliza o serial monotônico existente do DirectionalSword mais
+  `TechniqueId` e `ActionId`. `ActionId` isolado é insuficiente: duas Techniques
+  com o mesmo ActionId recebem outcomes separados.
+- Um contato entra no acumulador somente depois de `DirectionalMeleeResolver`
+  resolver e `CombatantComponent::ApplyResolvedMelee` concluir. `ContactCount`
+  conta resultados autoritativos processados, nunca sweeps; `UniqueTargetCount`
+  conta `TargetId` distintos e não cresce com contatos repetidos no mesmo alvo.
+- Damage usa exclusivamente `FKashmirEffectApplicationResult::AppliedMagnitude`
+  para efeitos de resolução `Damage` realmente aplicados. Não usa BaseDamage,
+  magnitude solicitada nem diferença inferida de health. Block, parry e guard
+  break vêm das flags explícitas de `FKashmirDefensePipelineResult`.
+- Outcome ativo expõe serial, Technique, Action, contatos, alvos únicos, flags
+  suportadas, dano aplicado total, último TargetId e último CombatResult. O
+  finalized acrescenta `Completed`, `Interrupted` ou `Transitioned`. Não existe
+  histórico, persistência ou replicação no v0.1.
+- Completion e cancel finalizam o current. Transition bem-sucedida finaliza A
+  como `Transitioned` e começa B vazio, inclusive com ActionId compartilhado e
+  consumo de request buffered. Request pending não cria outcome. Preflight/
+  transition falha preserva A e seu evidence intactos.
+- Uma execução finalizada com `ContactCount == 0` é a base objetiva para futuro
+  `OnMiss`, mas nenhuma condição de transition por outcome foi implementada.
+- Evidência PIE: uma execução real acumulou `1` contato, `1` alvo único e `24`
+  damage aplicado, finalizando como `Completed`; a execução seguinte começou
+  vazia e acumulou evidência própria. Uma execução fora de alcance finalizou
+  `Completed` com zero contatos, sem implementar `OnMiss`.
+- Transition imediata finalizou A como `Transitioned` e iniciou B com novo serial
+  e outcome vazio. A prova buffered foi determinística via `ActionRuntime`: em
+  aproximadamente `0.220 s`, B ficou pending sem criar outcome; ao cruzar a
+  janela, o pending foi `Consumed`, A finalizou `Transitioned` e B iniciou vazio,
+  depois acumulando seu próprio contato real e `24` damage. Request em `0.500 s`,
+  após a janela `[0.320, 0.470] s`, foi recusada com
+  `TechniqueTransitionWindowMissed` e preservou A sem falsa finalização.
+- O log `Technique slot 2 started ActionId=Sword.Direct.Right` ainda aparece no
+  request buffered antes do início real de B; os estados autoritativos confirmam
+  que é somente um logging/observability wart conhecido. Nenhuma mudança
+  persistente de asset ou mapa foi necessária para a validação PIE.
+- Evidência final automatizada: full `KashmirUEEditor Win64 Development` build;
+  `Kashmir.Combat.CombatOutcomeEvidence` 8/8;
+  `Kashmir.Combat.TechniqueRequestBuffer` 7/7;
+  `Kashmir.Combat.TechniqueTransitionGrammar` 9/9;
+  `Kashmir.Combat.DirectionalSword` 19/19; `Kashmir.Combat` 198/198; e
+  `Kashmir.Foundation` 6/6.
+- Futuro: condições OnHit/OnMiss/OnBlock/OnParry, progression, mastery,
+  achievements, AI, telemetry, networking/replication/prediction/rollback e
+  histórico persistente permanecem fora do v0.1. Block, parry, guard break e
+  `Interrupted` permanecem automation-covered neste checkpoint.

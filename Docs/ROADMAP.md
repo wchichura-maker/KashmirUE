@@ -350,6 +350,28 @@ Pendente para concluir UE2.1:
   `100 -> 76 -> 52` e trace generations `23 -> 24 -> 25`, sem deslocar o pawn
   nem persistir estado de PIE. A semântica do log de request buffered e o
   polimento visual contínuo permanecem `PENDING` e não bloqueiam o runtime v0.1.
+- **UE2.3.18 — Combat Outcome Evidence v0.1:** `IMPLEMENTED / AUTOMATION
+  VALIDATED / PIE VALIDATED`. Um contrato genérico acumula,
+  por execução real iniciada, somente evidência já provada pelo pipeline de
+  contato: contagem de contatos processados, alvos distintos, damage realmente
+  aplicado, block, parry, guard break, último alvo e último CombatResult. A
+  integração Sword possui apenas `current + last finalized` e reutiliza o serial
+  monotônico, `TechniqueId` e `ActionId`; Techniques com o mesmo ActionId não
+  compartilham outcome. Completion finaliza como `Completed`, cancel como
+  `Interrupted` e transition como `Transitioned`; B começa vazio em transitions
+  imediatas ou buffered, enquanto falhas antes do commit preservam A. Zero
+  contatos é somente a base futura para OnMiss. PIE confirmou contato real e
+  `24` damage, isolamento entre execuções, zero-contact `Completed`, transition
+  imediata, consumo buffered determinístico via `ActionRuntime` e preservação de
+  A após `TechniqueTransitionWindowMissed`. Nenhum asset/mapa foi persistido. O
+  log antecipado de ActionId durante buffering permanece um wart conhecido.
+  `WeaponTrace` continua
+  acquisition-only e `ActionRuntime` outcome-agnostic. Nenhuma condição OnHit,
+  OnMiss, OnBlock ou OnParry foi adicionada. Progression, mastery, achievements,
+  AI, telemetry e networking permanecem futuros. CombatOutcomeEvidence passa
+  8/8, TechniqueRequestBuffer 7/7, TechniqueTransitionGrammar 9/9,
+  DirectionalSword 19/19, Combat 198/198 e Foundation 6/6; full editor build
+  passa.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova

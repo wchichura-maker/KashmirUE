@@ -187,7 +187,8 @@ namespace KashmirTechniqueRequestBufferTests
         EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 
-using namespace KashmirTechniqueRequestBufferTests;
+namespace KashmirTechniqueRequestBufferTests
+{
 
 
 KASHMIR_BUFFER_TEST(FBufferAdmissionTest, "Admission")
@@ -530,6 +531,9 @@ bool FBufferAuthorityTest::RunTest(const FString& Parameters)
     TestFalse(TEXT("Technique buffer introduces no Root Motion authority"),
         SwordSource.Contains(TEXT("RootMotion")));
     return true;
+}
+
+
 }
 
 
