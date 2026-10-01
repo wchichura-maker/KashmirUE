@@ -372,6 +372,24 @@ Pendente para concluir UE2.1:
   8/8, TechniqueRequestBuffer 7/7, TechniqueTransitionGrammar 9/9,
   DirectionalSword 19/19, Combat 198/198 e Foundation 6/6; full editor build
   passa.
+- **UE2.3.19 — Outcome-Conditioned Technique Transitions v0.1:** `IMPLEMENTED /
+  AUTOMATION VALIDATED / PIE VALIDATED`. TransitionRules podem exigir um bitmask
+  AND de fatos positivos monotônicos (`HadContact`, `AppliedDamage`, `Blocked`,
+  `Parried`, `GuardBroken`) através de uma view reduzida do Outcome atual. O
+  Style separa eligibility atual, janela futura alcançável, `OutcomePending` e
+  janela perdida; o Sword valida serial/Technique/Action, mantém somente a
+  intenção pending e reavalia pelo `AdvanceRuntime`. Buffer-before-evidence é
+  suportado e expiration continua precedendo eligibility. Zero requirements
+  preserva o legado, OR usa múltiplas rules, e ausência de evidence ativa não é
+  Miss. PIE confirmou a regra persistente incondicional, `OutcomePending`,
+  expiração sem evidence e consumo automático do mesmo request pending após
+  `WeaponTrace`/hurtbox produzir 24 damage real; A finalizou `Transitioned` e B
+  iniciou com novo serial e Outcome limpo. A rule condicionada foi somente
+  transient e nenhum asset/mapa foi alterado. A prova automation 9/9 passa;
+  regressões:
+  TechniqueTransitionGrammar 9/9, TechniqueRequestBuffer 7/7,
+  CombatOutcomeEvidence 8/8, DirectionalSword 19/19, Combat 207/207 e
+  Foundation 6/6; full editor build passa.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova

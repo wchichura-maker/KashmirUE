@@ -358,6 +358,8 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
     }
 
     const FKashmirActionRuntimeState CurrentState = GetRuntimeState();
+    const FKashmirTechniqueTransitionContext TransitionContext =
+        BuildTechniqueTransitionContext(CurrentState, Request.ContextTags);
     FKashmirTechniqueTransitionRule TransitionRule;
     FString TransitionReason;
     const bool bHasEligibleTransition =
@@ -368,8 +370,7 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
         Style->ResolveTechniqueTransition(
             ActivePlan.TechniqueId,
             TechniquePlan.Technique.TechniqueId,
-            CurrentState.Elapsed,
-            Request.ContextTags,
+            TransitionContext,
             TransitionRule,
             TransitionReason);
 
@@ -407,80 +408,26 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
 }
 
 
-bool UKashmirDirectionalSwordComponent::FindFutureTechniqueTransition(
-    const UKashmirWeaponCombatStyle* Style,
-    const FName FromTechniqueId,
-    const FName ToTechniqueId,
-    const float Elapsed,
-    const float MaximumWait,
-    const float SourceActionLifetime,
-    const FGameplayTagContainer& ContextTags,
-    FKashmirTechniqueTransitionRule& OutRule,
-    bool& bOutRelevantRuleExists,
-    bool& bOutWindowMissed) const
+FKashmirTechniqueTransitionContext
+UKashmirDirectionalSwordComponent::BuildTechniqueTransitionContext(
+    const FKashmirActionRuntimeState& RuntimeState,
+    const FGameplayTagContainer& ContextTags) const
 {
-    OutRule = {};
-    bOutRelevantRuleExists = false;
-    bOutWindowMissed = false;
-    if (Style == nullptr)
+    FKashmirTechniqueTransitionContext Context;
+    Context.Elapsed = RuntimeState.Elapsed;
+    Context.ContextTags = ContextTags;
+    if (CombatOutcome.HasCurrent())
     {
-        return false;
-    }
-
-    const FKashmirTechniqueTransitionRule* BestFutureRule = nullptr;
-    for (const FKashmirTechniqueTransitionRule& AuthoredRule : Style->TransitionRules)
-    {
-        if (AuthoredRule.FromTechniqueId != FromTechniqueId ||
-            AuthoredRule.ToTechniqueId != ToTechniqueId)
+        const FKashmirCombatExecutionOutcome& Outcome = CombatOutcome.GetCurrent();
+        if (Outcome.ExecutionSerial == static_cast<int64>(ActionExecutionSerial) &&
+            Outcome.TechniqueId == ActivePlan.TechniqueId &&
+            Outcome.ActionId == RuntimeState.ActionId)
         {
-            continue;
-        }
-
-        // Probe the authored opening instant through the Style resolver. This
-        // keeps tag and rule eligibility owned by WeaponCombatStyle and makes
-        // no prediction about future tag changes.
-        FKashmirTechniqueTransitionRule ResolvedRule;
-        FString ProbeReason;
-        if (!Style->ResolveTechniqueTransition(
-                FromTechniqueId,
-                ToTechniqueId,
-                AuthoredRule.MinElapsed,
-                ContextTags,
-                ResolvedRule,
-                ProbeReason))
-        {
-            continue;
-        }
-
-        bOutRelevantRuleExists = true;
-        if (ResolvedRule.MaxElapsed >= 0.0f &&
-            Elapsed - KINDA_SMALL_NUMBER > ResolvedRule.MaxElapsed)
-        {
-            bOutWindowMissed = true;
-            continue;
-        }
-        if (Elapsed + KINDA_SMALL_NUMBER >= ResolvedRule.MinElapsed)
-        {
-            continue;
-        }
-
-        const float Wait = ResolvedRule.MinElapsed - Elapsed;
-        if (ResolvedRule.MinElapsed - KINDA_SMALL_NUMBER > SourceActionLifetime ||
-            Wait - KINDA_SMALL_NUMBER > MaximumWait)
-        {
-            continue;
-        }
-        if (BestFutureRule == nullptr ||
-            ResolvedRule.MinElapsed < BestFutureRule->MinElapsed ||
-            (FMath::IsNearlyEqual(
-                    ResolvedRule.MinElapsed, BestFutureRule->MinElapsed) &&
-                ResolvedRule.Priority > BestFutureRule->Priority))
-        {
-            OutRule = ResolvedRule;
-            BestFutureRule = &OutRule;
+            Context.OutcomeFacts =
+                FKashmirCombatOutcomeFacts::FromOutcome(Outcome);
         }
     }
-    return BestFutureRule != nullptr;
+    return Context;
 }
 
 
@@ -508,21 +455,25 @@ UKashmirDirectionalSwordComponent::TryBufferTechniqueRequest(
         return ETechniqueBufferAttempt::Rejected;
     }
 
-    FKashmirTechniqueTransitionRule FutureRule;
-    bool bRelevantRuleExists = false;
-    bool bWindowMissed = false;
     const float Lifetime = FMath::Max(0.0f, TechniqueRequestBufferLifetime);
-    if (FindFutureTechniqueTransition(
-            Style,
+    const FKashmirTechniqueTransitionContext Context =
+        BuildTechniqueTransitionContext(CurrentState, Request.ContextTags);
+    FKashmirTechniqueTransitionEvaluation Evaluation;
+    if (!Style->EvaluateTechniqueTransition(
             ActivePlan.TechniqueId,
             TechniquePlan.Technique.TechniqueId,
-            CurrentState.Elapsed,
+            Context,
             Lifetime,
             SourceActionLifetime,
-            Request.ContextTags,
-            FutureRule,
-            bRelevantRuleExists,
-            bWindowMissed))
+            Evaluation,
+            OutReason))
+    {
+        return ETechniqueBufferAttempt::Rejected;
+    }
+    if (Evaluation.Availability ==
+            EKashmirTechniqueTransitionAvailability::FutureWindowReachable ||
+        Evaluation.Availability ==
+            EKashmirTechniqueTransitionAvailability::OutcomePending)
     {
         if (PendingTechniqueRequest.IsSet())
         {
@@ -550,22 +501,16 @@ UKashmirDirectionalSwordComponent::TryBufferTechniqueRequest(
             *ActivePlan.TechniqueId.ToString(),
             *TechniquePlan.Technique.TechniqueId.ToString(),
             CurrentState.Elapsed,
-            FutureRule.MinElapsed,
+            Evaluation.Rule.MinElapsed,
             Lifetime);
         return ETechniqueBufferAttempt::Buffered;
     }
 
-    if (bRelevantRuleExists)
+    if (Evaluation.Availability ==
+        EKashmirTechniqueTransitionAvailability::WindowMissed)
     {
-        if (bWindowMissed)
-        {
-            OutReason = TEXT("TechniqueTransitionWindowMissed");
-            return ETechniqueBufferAttempt::Rejected;
-        }
-        // A request that is too early for the intentionally short buffer keeps
-        // the pre-buffer cancel/reject semantics. The buffer must not become a
-        // new global gate for otherwise valid authored actions.
-        return ETechniqueBufferAttempt::NotApplicable;
+        OutReason = TEXT("TechniqueTransitionWindowMissed");
+        return ETechniqueBufferAttempt::Rejected;
     }
     return ETechniqueBufferAttempt::NotApplicable;
 }
@@ -616,17 +561,36 @@ void UKashmirDirectionalSwordComponent::UpdatePendingTechniqueRequest(
         return;
     }
 
-    FKashmirTechniqueTransitionRule TransitionRule;
-    if (Style->ResolveTechniqueTransition(
+    float SourceActionLifetime = 0.0f;
+    if (!Runtime->GetActionTotalDuration(
+            CurrentState.ActionId, SourceActionLifetime, Reason))
+    {
+        ClearPendingTechniqueRequest(EKashmirPendingTechniqueClearReason::Invalid);
+        return;
+    }
+    const float RemainingLifetime =
+        FMath::Max(0.0f, Pending.Lifetime - Pending.Age);
+    const FKashmirTechniqueTransitionContext Context =
+        BuildTechniqueTransitionContext(CurrentState, Pending.Request.ContextTags);
+    FKashmirTechniqueTransitionEvaluation Evaluation;
+    if (!Style->EvaluateTechniqueTransition(
             Pending.SourceTechniqueId,
             TechniquePlan.Technique.TechniqueId,
-            CurrentState.Elapsed,
-            Pending.Request.ContextTags,
-            TransitionRule,
+            Context,
+            RemainingLifetime,
+            SourceActionLifetime,
+            Evaluation,
             Reason))
     {
+        ClearPendingTechniqueRequest(EKashmirPendingTechniqueClearReason::Invalid);
+        return;
+    }
+
+    if (Evaluation.Availability ==
+        EKashmirTechniqueTransitionAvailability::EligibleNow)
+    {
         if (TryTransitionTechnique(
-                Plan, TransitionRule, Pending.Request.ContextTags, Reason))
+                Plan, Evaluation.Rule, Pending.Request.ContextTags, Reason))
         {
             ClearPendingTechniqueRequest(
                 EKashmirPendingTechniqueClearReason::Consumed);
@@ -642,39 +606,19 @@ void UKashmirDirectionalSwordComponent::UpdatePendingTechniqueRequest(
         return;
     }
 
-    float SourceActionLifetime = 0.0f;
-    if (!Runtime->GetActionTotalDuration(
-            CurrentState.ActionId, SourceActionLifetime, Reason))
-    {
-        ClearPendingTechniqueRequest(EKashmirPendingTechniqueClearReason::Invalid);
-        return;
-    }
-    FKashmirTechniqueTransitionRule FutureRule;
-    bool bRelevantRuleExists = false;
-    bool bWindowMissed = false;
-    const float RemainingLifetime =
-        FMath::Max(0.0f, Pending.Lifetime - Pending.Age);
-    if (FindFutureTechniqueTransition(
-            Style,
-            Pending.SourceTechniqueId,
-            TechniquePlan.Technique.TechniqueId,
-            CurrentState.Elapsed,
-            RemainingLifetime,
-            SourceActionLifetime,
-            Pending.Request.ContextTags,
-            FutureRule,
-            bRelevantRuleExists,
-            bWindowMissed))
+    if (Evaluation.Availability ==
+            EKashmirTechniqueTransitionAvailability::FutureWindowReachable ||
+        Evaluation.Availability ==
+            EKashmirTechniqueTransitionAvailability::OutcomePending)
     {
         return;
     }
 
     ClearPendingTechniqueRequest(
-        bWindowMissed
+        Evaluation.Availability ==
+            EKashmirTechniqueTransitionAvailability::WindowMissed
             ? EKashmirPendingTechniqueClearReason::WindowMissed
-            : (bRelevantRuleExists
-                ? EKashmirPendingTechniqueClearReason::Expired
-                : EKashmirPendingTechniqueClearReason::Invalid));
+            : EKashmirPendingTechniqueClearReason::Invalid);
 }
 
 

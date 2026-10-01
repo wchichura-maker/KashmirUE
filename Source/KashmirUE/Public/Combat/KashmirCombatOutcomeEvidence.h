@@ -16,6 +16,19 @@ enum class EKashmirCombatOutcomeFinalizationReason : uint8
 };
 
 
+UENUM(BlueprintType, meta=(Bitflags, UseEnumValuesAsMaskValuesInEditor="true"))
+enum class EKashmirCombatOutcomeFact : uint8
+{
+    None = 0,
+    HadContact = 1 << 0,
+    AppliedDamage = 1 << 1,
+    Blocked = 1 << 2,
+    Parried = 1 << 3,
+    GuardBroken = 1 << 4
+};
+ENUM_CLASS_FLAGS(EKashmirCombatOutcomeFact);
+
+
 /** One authoritative, fully processed combat contact observed by an execution. */
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirCombatOutcomeContact
@@ -96,6 +109,34 @@ struct KASHMIRUE_API FKashmirCombatExecutionOutcome
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     EKashmirCombatOutcomeFinalizationReason FinalizationReason =
         EKashmirCombatOutcomeFinalizationReason::None;
+};
+
+
+/** Minimal immutable projection consumed by Technique transition grammar. */
+USTRUCT(BlueprintType)
+struct KASHMIRUE_API FKashmirCombatOutcomeFacts
+{
+    GENERATED_BODY()
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bHadContact = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bAppliedDamage = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bBlocked = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bParried = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    bool bGuardBroken = false;
+
+    static FKashmirCombatOutcomeFacts FromOutcome(
+        const FKashmirCombatExecutionOutcome& Outcome);
+    static bool IsValidRequirementMask(int32 RequiredFacts);
+    bool Satisfies(int32 RequiredFacts) const;
 };
 
 

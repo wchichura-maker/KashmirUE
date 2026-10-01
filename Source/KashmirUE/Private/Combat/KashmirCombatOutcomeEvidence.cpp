@@ -1,6 +1,63 @@
 #include "Combat/KashmirCombatOutcomeEvidence.h"
 
 
+namespace
+{
+    constexpr int32 AllOutcomeFactMask =
+        static_cast<int32>(EKashmirCombatOutcomeFact::HadContact) |
+        static_cast<int32>(EKashmirCombatOutcomeFact::AppliedDamage) |
+        static_cast<int32>(EKashmirCombatOutcomeFact::Blocked) |
+        static_cast<int32>(EKashmirCombatOutcomeFact::Parried) |
+        static_cast<int32>(EKashmirCombatOutcomeFact::GuardBroken);
+
+    bool HasRequiredFact(
+        const int32 RequiredFacts,
+        const EKashmirCombatOutcomeFact Fact)
+    {
+        return (RequiredFacts & static_cast<int32>(Fact)) != 0;
+    }
+}
+
+
+FKashmirCombatOutcomeFacts FKashmirCombatOutcomeFacts::FromOutcome(
+    const FKashmirCombatExecutionOutcome& Outcome)
+{
+    FKashmirCombatOutcomeFacts Facts;
+    Facts.bHadContact = Outcome.bHadContact;
+    Facts.bAppliedDamage = Outcome.bAppliedDamage;
+    Facts.bBlocked = Outcome.bWasBlocked;
+    Facts.bParried = Outcome.bWasParried;
+    Facts.bGuardBroken = Outcome.bCausedGuardBreak;
+    return Facts;
+}
+
+
+bool FKashmirCombatOutcomeFacts::IsValidRequirementMask(
+    const int32 RequiredFacts)
+{
+    return RequiredFacts >= 0 && (RequiredFacts & ~AllOutcomeFactMask) == 0;
+}
+
+
+bool FKashmirCombatOutcomeFacts::Satisfies(const int32 RequiredFacts) const
+{
+    if (!IsValidRequirementMask(RequiredFacts))
+    {
+        return false;
+    }
+    return (!HasRequiredFact(RequiredFacts, EKashmirCombatOutcomeFact::HadContact) ||
+            bHadContact) &&
+        (!HasRequiredFact(RequiredFacts, EKashmirCombatOutcomeFact::AppliedDamage) ||
+            bAppliedDamage) &&
+        (!HasRequiredFact(RequiredFacts, EKashmirCombatOutcomeFact::Blocked) ||
+            bBlocked) &&
+        (!HasRequiredFact(RequiredFacts, EKashmirCombatOutcomeFact::Parried) ||
+            bParried) &&
+        (!HasRequiredFact(RequiredFacts, EKashmirCombatOutcomeFact::GuardBroken) ||
+            bGuardBroken);
+}
+
+
 void FKashmirCombatOutcomeAccumulator::BeginExecution(
     const int64 ExecutionSerial,
     const FName TechniqueId,

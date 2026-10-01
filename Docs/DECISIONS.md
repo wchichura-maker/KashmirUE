@@ -944,3 +944,44 @@
   achievements, AI, telemetry, networking/replication/prediction/rollback e
   histórico persistente permanecem fora do v0.1. Block, parry, guard break e
   `Interrupted` permanecem automation-covered neste checkpoint.
+
+## UE-0034 — Technique transitions podem exigir fatos positivos do Outcome
+
+- **Status da decisão:** **DECIDED** em 2026-10-01.
+- **Status técnico:** v0.1 **IMPLEMENTED / AUTOMATION VALIDATED / PIE VALIDATED**.
+- `FKashmirTechniqueTransitionRule::RequiredOutcomeFacts` é um bitmask de fatos
+  positivos monotônicos: `HadContact`, `AppliedDamage`, `Blocked`, `Parried` e
+  `GuardBroken`. Zero preserva a grammar anterior; múltiplos bits usam AND e OR
+  é authorado como múltiplas rules. Bits desconhecidos são inválidos.
+- A grammar recebe somente `FKashmirCombatOutcomeFacts`, uma view reduzida sem
+  TargetId, CombatResult, totals ou counts. O accumulator continua apenas
+  agregando evidence; `ActionRuntime` e `WeaponTrace` permanecem Outcome-
+  agnostic.
+- `WeaponCombatStyle` distingue `EligibleNow`, `FutureWindowReachable`,
+  `OutcomePending`, `WindowMissed` e ausência de regra. Somente rules com fatos
+  satisfeitos competem por resolução imediata; prioridade, tie-break lexical e
+  dedupe por destino permanecem determinísticos. Requirements participam da
+  equivalência semântica de rules.
+- `DirectionalSwordComponent` fornece snapshot somente quando serial,
+  TechniqueId e ActionId coincidem com a execução atual. Requests podem ser
+  buffered antes da evidence e são reavaliadas por `AdvanceRuntime`; pending não
+  congela uma rule nem cria Outcome. Na janela, requirements ainda ausentes
+  produzem `OutcomePending` até evidence, fechamento ou expiração.
+- Expiration continua precedendo eligibility. Outcome falso durante execução
+  ativa significa apenas evidence ainda não observada e nunca é interpretado
+  como Miss. NoContact, predicates negativos, thresholds e target predicates
+  permanecem fora do v0.1.
+- A regra persistente Slot1 -> Slot2 foi validada em PIE sem Outcome positivo:
+  A serial 1 transitou para B serial 2 em elapsed 0.3553 e A finalizou como
+  `Transitioned`. Isso confirma que requirements zero preservam o legado.
+- A proof condicionada usou somente uma rule transient PIE A -> B, sem salvar
+  package. Com `AppliedDamage` ausente, o request em elapsed 0.220 permaneceu
+  pending ao abrir a janela e expirou sem iniciar B quando evidence não surgiu.
+  Com janela transient [0.120, 0.300], o request único em elapsed 0.130688 foi
+  consumido após contato real em `HitRegion.Torso`/`spine_04`: A serial 4
+  finalizou `Transitioned` com 1 contato e 24 damage; B iniciou automaticamente
+  com serial 5 e Outcome limpo. Nenhum asset/mapa foi alterado.
+- Evidência: `Kashmir.Combat.OutcomeConditionedTransitions` 9/9;
+  TechniqueTransitionGrammar 9/9; TechniqueRequestBuffer 7/7;
+  CombatOutcomeEvidence 8/8; DirectionalSword 19/19; Combat 207/207;
+  Foundation 6/6; full `KashmirUEEditor Win64 Development` build passa.

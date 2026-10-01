@@ -440,17 +440,9 @@ private:
         const FKashmirTechniqueActionPlan& TechniquePlan,
         const FKashmirActionRuntimeState& CurrentState,
         FString& OutReason);
-    bool FindFutureTechniqueTransition(
-        const UKashmirWeaponCombatStyle* Style,
-        FName FromTechniqueId,
-        FName ToTechniqueId,
-        float Elapsed,
-        float MaximumWait,
-        float SourceActionLifetime,
-        const FGameplayTagContainer& ContextTags,
-        FKashmirTechniqueTransitionRule& OutRule,
-        bool& bOutRelevantRuleExists,
-        bool& bOutWindowMissed) const;
+    FKashmirTechniqueTransitionContext BuildTechniqueTransitionContext(
+        const FKashmirActionRuntimeState& RuntimeState,
+        const FGameplayTagContainer& ContextTags) const;
     void UpdatePendingTechniqueRequest(float DeltaSeconds);
     void ClearPendingTechniqueRequest(EKashmirPendingTechniqueClearReason Reason);
     bool StartResolvedPlan(

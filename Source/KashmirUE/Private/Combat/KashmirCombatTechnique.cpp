@@ -13,23 +13,24 @@ namespace
             FMath::IsNearlyEqual(A.MaxElapsed, B.MaxElapsed) &&
             A.Priority == B.Priority &&
             A.RequiredTags == B.RequiredTags &&
-            A.BlockedTags == B.BlockedTags;
+            A.BlockedTags == B.BlockedTags &&
+            A.RequiredOutcomeFacts == B.RequiredOutcomeFacts;
     }
 
     bool IsTechniqueTransitionRuleEligible(
         const FKashmirTechniqueTransitionRule& Rule,
         const FName FromTechniqueId,
-        const float Elapsed,
-        const FGameplayTagContainer& ContextTags)
+        const FKashmirTechniqueTransitionContext& Context)
     {
         FString Reason;
         return Rule.IsValid(Reason) &&
             Rule.FromTechniqueId == FromTechniqueId &&
-            Elapsed + KINDA_SMALL_NUMBER >= Rule.MinElapsed &&
+            Context.Elapsed + KINDA_SMALL_NUMBER >= Rule.MinElapsed &&
             (Rule.MaxElapsed < 0.0f ||
-                Elapsed - KINDA_SMALL_NUMBER <= Rule.MaxElapsed) &&
-            ContextTags.HasAll(Rule.RequiredTags) &&
-            !ContextTags.HasAny(Rule.BlockedTags);
+                Context.Elapsed - KINDA_SMALL_NUMBER <= Rule.MaxElapsed) &&
+            Context.ContextTags.HasAll(Rule.RequiredTags) &&
+            !Context.ContextTags.HasAny(Rule.BlockedTags) &&
+            Context.OutcomeFacts.Satisfies(Rule.RequiredOutcomeFacts);
     }
 }
 
@@ -124,6 +125,12 @@ bool FKashmirTechniqueTransitionRule::IsValid(FString& OutReason) const
     if (RequiredTags.HasAny(BlockedTags))
     {
         OutReason = TEXT("technique transition requires and blocks the same tag");
+        return false;
+    }
+    if (!FKashmirCombatOutcomeFacts::IsValidRequirementMask(
+            RequiredOutcomeFacts))
+    {
+        OutReason = TEXT("technique transition has invalid outcome requirements");
         return false;
     }
     return true;
@@ -366,13 +373,24 @@ TArray<FName> UKashmirWeaponCombatStyle::GetTechniqueTransitionOptions(
     const float Elapsed,
     const FGameplayTagContainer& ContextTags) const
 {
+    FKashmirTechniqueTransitionContext Context;
+    Context.Elapsed = Elapsed;
+    Context.ContextTags = ContextTags;
+    return GetTechniqueTransitionOptions(FromTechniqueId, Context);
+}
+
+
+TArray<FName> UKashmirWeaponCombatStyle::GetTechniqueTransitionOptions(
+    const FName FromTechniqueId,
+    const FKashmirTechniqueTransitionContext& Context) const
+{
     struct FCandidate
     {
         FName TechniqueId;
         int32 Priority = 0;
     };
 
-    if (!FMath::IsFinite(Elapsed) || Elapsed < 0.0f)
+    if (!FMath::IsFinite(Context.Elapsed) || Context.Elapsed < 0.0f)
     {
         return {};
     }
@@ -381,7 +399,7 @@ TArray<FName> UKashmirWeaponCombatStyle::GetTechniqueTransitionOptions(
     for (const FKashmirTechniqueTransitionRule& Rule : TransitionRules)
     {
         if (IsTechniqueTransitionRuleEligible(
-                Rule, FromTechniqueId, Elapsed, ContextTags))
+                Rule, FromTechniqueId, Context))
         {
             int32& BestPriority = BestPriorityByDestination.FindOrAdd(
                 Rule.ToTechniqueId, MIN_int32);
@@ -419,13 +437,28 @@ bool UKashmirWeaponCombatStyle::ResolveTechniqueTransition(
     FKashmirTechniqueTransitionRule& OutRule,
     FString& OutReason) const
 {
+    FKashmirTechniqueTransitionContext Context;
+    Context.Elapsed = Elapsed;
+    Context.ContextTags = ContextTags;
+    return ResolveTechniqueTransition(
+        FromTechniqueId, ToTechniqueId, Context, OutRule, OutReason);
+}
+
+
+bool UKashmirWeaponCombatStyle::ResolveTechniqueTransition(
+    const FName FromTechniqueId,
+    const FName ToTechniqueId,
+    const FKashmirTechniqueTransitionContext& Context,
+    FKashmirTechniqueTransitionRule& OutRule,
+    FString& OutReason) const
+{
     OutRule = {};
     OutReason.Reset();
     if (!ValidateStyle(OutReason))
     {
         return false;
     }
-    if (!FMath::IsFinite(Elapsed) || Elapsed < 0.0f)
+    if (!FMath::IsFinite(Context.Elapsed) || Context.Elapsed < 0.0f)
     {
         OutReason = TEXT("technique transition elapsed time is invalid");
         return false;
@@ -436,7 +469,7 @@ bool UKashmirWeaponCombatStyle::ResolveTechniqueTransition(
     {
         if (Rule.ToTechniqueId != ToTechniqueId ||
             !IsTechniqueTransitionRuleEligible(
-                Rule, FromTechniqueId, Elapsed, ContextTags))
+                Rule, FromTechniqueId, Context))
         {
             continue;
         }
@@ -451,5 +484,111 @@ bool UKashmirWeaponCombatStyle::ResolveTechniqueTransition(
         return false;
     }
     OutRule = *BestRule;
+    return true;
+}
+
+
+bool UKashmirWeaponCombatStyle::EvaluateTechniqueTransition(
+    const FName FromTechniqueId,
+    const FName ToTechniqueId,
+    const FKashmirTechniqueTransitionContext& Context,
+    const float MaximumFutureWait,
+    const float SourceActionLifetime,
+    FKashmirTechniqueTransitionEvaluation& OutEvaluation,
+    FString& OutReason) const
+{
+    OutEvaluation = {};
+    OutReason.Reset();
+    if (!ValidateStyle(OutReason))
+    {
+        return false;
+    }
+    if (!FMath::IsFinite(Context.Elapsed) || Context.Elapsed < 0.0f ||
+        !FMath::IsFinite(MaximumFutureWait) || MaximumFutureWait < 0.0f ||
+        !FMath::IsFinite(SourceActionLifetime) || SourceActionLifetime < 0.0f)
+    {
+        OutReason = TEXT("technique transition evaluation contains invalid time");
+        return false;
+    }
+
+    const FKashmirTechniqueTransitionRule* BestEligible = nullptr;
+    const FKashmirTechniqueTransitionRule* BestPending = nullptr;
+    const FKashmirTechniqueTransitionRule* BestFuture = nullptr;
+    bool bWindowMissed = false;
+    for (const FKashmirTechniqueTransitionRule& Rule : TransitionRules)
+    {
+        FString RuleReason;
+        if (!Rule.IsValid(RuleReason) ||
+            Rule.FromTechniqueId != FromTechniqueId ||
+            Rule.ToTechniqueId != ToTechniqueId ||
+            !Context.ContextTags.HasAll(Rule.RequiredTags) ||
+            Context.ContextTags.HasAny(Rule.BlockedTags))
+        {
+            continue;
+        }
+
+        if (Rule.MaxElapsed >= 0.0f &&
+            Context.Elapsed - KINDA_SMALL_NUMBER > Rule.MaxElapsed)
+        {
+            bWindowMissed = true;
+            continue;
+        }
+
+        if (Context.Elapsed + KINDA_SMALL_NUMBER >= Rule.MinElapsed)
+        {
+            if (Context.OutcomeFacts.Satisfies(Rule.RequiredOutcomeFacts))
+            {
+                if (BestEligible == nullptr || Rule.Priority > BestEligible->Priority)
+                {
+                    BestEligible = &Rule;
+                }
+            }
+            else if (BestPending == nullptr || Rule.Priority > BestPending->Priority)
+            {
+                BestPending = &Rule;
+            }
+            continue;
+        }
+
+        const float Wait = Rule.MinElapsed - Context.Elapsed;
+        if (Rule.MinElapsed - KINDA_SMALL_NUMBER <= SourceActionLifetime &&
+            Wait - KINDA_SMALL_NUMBER <= MaximumFutureWait &&
+            (BestFuture == nullptr ||
+                Rule.MinElapsed < BestFuture->MinElapsed ||
+                (FMath::IsNearlyEqual(Rule.MinElapsed, BestFuture->MinElapsed) &&
+                    Rule.Priority > BestFuture->Priority)))
+        {
+            BestFuture = &Rule;
+        }
+    }
+
+    if (BestEligible != nullptr)
+    {
+        OutEvaluation.Availability =
+            EKashmirTechniqueTransitionAvailability::EligibleNow;
+        OutEvaluation.Rule = *BestEligible;
+    }
+    else if (BestPending != nullptr)
+    {
+        OutEvaluation.Availability =
+            EKashmirTechniqueTransitionAvailability::OutcomePending;
+        OutEvaluation.Rule = *BestPending;
+    }
+    else if (BestFuture != nullptr)
+    {
+        OutEvaluation.Availability =
+            EKashmirTechniqueTransitionAvailability::FutureWindowReachable;
+        OutEvaluation.Rule = *BestFuture;
+    }
+    else if (bWindowMissed)
+    {
+        OutEvaluation.Availability =
+            EKashmirTechniqueTransitionAvailability::WindowMissed;
+    }
+    else
+    {
+        OutEvaluation.Availability =
+            EKashmirTechniqueTransitionAvailability::NoMatchingRule;
+    }
     return true;
 }

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimMontage.h"
+#include "Combat/KashmirCombatOutcomeEvidence.h"
 #include "Contracts/KashmirActionContracts.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
@@ -279,6 +280,24 @@ struct KASHMIRUE_API FKashmirTechniqueSlotBinding
 };
 
 
+enum class EKashmirTechniqueTransitionAvailability : uint8
+{
+    NoMatchingRule,
+    EligibleNow,
+    FutureWindowReachable,
+    OutcomePending,
+    WindowMissed
+};
+
+
+struct FKashmirTechniqueTransitionContext
+{
+    float Elapsed = 0.0f;
+    FGameplayTagContainer ContextTags;
+    FKashmirCombatOutcomeFacts OutcomeFacts;
+};
+
+
 /** Authorable Technique-to-Technique eligibility. ActionRuntime remains Technique-agnostic. */
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirTechniqueTransitionRule
@@ -307,7 +326,19 @@ struct KASHMIRUE_API FKashmirTechniqueTransitionRule
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FGameplayTagContainer BlockedTags;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        meta=(Bitmask, BitmaskEnum="/Script/KashmirUE.EKashmirCombatOutcomeFact"))
+    int32 RequiredOutcomeFacts = 0;
+
     bool IsValid(FString& OutReason) const;
+};
+
+
+struct FKashmirTechniqueTransitionEvaluation
+{
+    EKashmirTechniqueTransitionAvailability Availability =
+        EKashmirTechniqueTransitionAvailability::NoMatchingRule;
+    FKashmirTechniqueTransitionRule Rule;
 };
 
 
@@ -368,11 +399,31 @@ public:
         float Elapsed,
         const FGameplayTagContainer& ContextTags) const;
 
+    TArray<FName> GetTechniqueTransitionOptions(
+        FName FromTechniqueId,
+        const FKashmirTechniqueTransitionContext& Context) const;
+
     bool ResolveTechniqueTransition(
         FName FromTechniqueId,
         FName ToTechniqueId,
         float Elapsed,
         const FGameplayTagContainer& ContextTags,
         FKashmirTechniqueTransitionRule& OutRule,
+        FString& OutReason) const;
+
+    bool ResolveTechniqueTransition(
+        FName FromTechniqueId,
+        FName ToTechniqueId,
+        const FKashmirTechniqueTransitionContext& Context,
+        FKashmirTechniqueTransitionRule& OutRule,
+        FString& OutReason) const;
+
+    bool EvaluateTechniqueTransition(
+        FName FromTechniqueId,
+        FName ToTechniqueId,
+        const FKashmirTechniqueTransitionContext& Context,
+        float MaximumFutureWait,
+        float SourceActionLifetime,
+        FKashmirTechniqueTransitionEvaluation& OutEvaluation,
         FString& OutReason) const;
 };
