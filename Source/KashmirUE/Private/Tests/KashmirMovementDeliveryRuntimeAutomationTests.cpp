@@ -15,11 +15,11 @@
 namespace
 {
     const FName TestActionId(TEXT("Sword.Test.ControlledTranslation"));
-    constexpr const TCHAR* StylePath =
+    constexpr const TCHAR* MovementDeliveryRuntimeStylePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirSword_CombatStyle_Baseline.")
         TEXT("DA_KashmirSword_CombatStyle_Baseline");
-    constexpr const TCHAR* ProfilePath =
+    constexpr const TCHAR* MovementDeliveryRuntimeProfilePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirDirectionalSword_Baseline.")
         TEXT("DA_KashmirDirectionalSword_Baseline");
@@ -121,9 +121,11 @@ namespace
         {
             if (!RuntimeWorld.Initialize()) return false;
             UKashmirWeaponCombatStyle* SourceStyle =
-                LoadObject<UKashmirWeaponCombatStyle>(nullptr, StylePath);
+                LoadObject<UKashmirWeaponCombatStyle>(
+                    nullptr, MovementDeliveryRuntimeStylePath);
             UKashmirDirectionalSwordProfile* SourceProfile =
-                LoadObject<UKashmirDirectionalSwordProfile>(nullptr, ProfilePath);
+                LoadObject<UKashmirDirectionalSwordProfile>(
+                    nullptr, MovementDeliveryRuntimeProfilePath);
             if (SourceStyle == nullptr || SourceProfile == nullptr ||
                 SourceStyle->SlotBindings.IsEmpty())
             {

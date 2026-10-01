@@ -10,28 +10,28 @@
 
 namespace
 {
-    constexpr const TCHAR* StylePath =
+    constexpr const TCHAR* ProceduralStylePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirSword_CombatStyle_Baseline.")
         TEXT("DA_KashmirSword_CombatStyle_Baseline");
-    constexpr const TCHAR* ProfilePath =
+    constexpr const TCHAR* ProceduralProfilePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirDirectionalSword_Baseline.")
         TEXT("DA_KashmirDirectionalSword_Baseline");
-    const FName QuickId(TEXT("Technique.Sword.Diagonal.Rising.Quick"));
-    const FName WideId(TEXT("Technique.Sword.Diagonal.Rising.Wide"));
+    const FName ProceduralQuickId(TEXT("Technique.Sword.Diagonal.Rising.Quick"));
+    const FName ProceduralWideId(TEXT("Technique.Sword.Diagonal.Rising.Wide"));
 
-    UKashmirWeaponCombatStyle* LoadStyle()
+    UKashmirWeaponCombatStyle* LoadProceduralStyle()
     {
-        return LoadObject<UKashmirWeaponCombatStyle>(nullptr, StylePath);
+        return LoadObject<UKashmirWeaponCombatStyle>(nullptr, ProceduralStylePath);
     }
 
-    UKashmirDirectionalSwordProfile* LoadProfile()
+    UKashmirDirectionalSwordProfile* LoadProceduralProfile()
     {
-        return LoadObject<UKashmirDirectionalSwordProfile>(nullptr, ProfilePath);
+        return LoadObject<UKashmirDirectionalSwordProfile>(nullptr, ProceduralProfilePath);
     }
 
-    const FKashmirCombatTechniqueDefinition* FindTechnique(
+    const FKashmirCombatTechniqueDefinition* FindProceduralTechnique(
         const UKashmirWeaponCombatStyle* Style,
         const FName Id)
     {
@@ -44,7 +44,7 @@ namespace
             : nullptr;
     }
 
-    bool ProfilesDiffer(
+    bool ProceduralProfilesDiffer(
         const FKashmirSwordPoseConfig& A,
         const FKashmirSwordPoseConfig& B)
     {
@@ -54,12 +54,12 @@ namespace
             !FMath::IsNearlyEqual(A.MaximumBodyLean, B.MaximumBodyLean);
     }
 
-    const FKashmirCombatTechniqueDefinition* FindBoundTechnique(
+    const FKashmirCombatTechniqueDefinition* FindProceduralBoundTechnique(
         const UKashmirWeaponCombatStyle* Style,
         const int32 BindingIndex)
     {
         return Style != nullptr && Style->SlotBindings.IsValidIndex(BindingIndex)
-            ? FindTechnique(Style, Style->SlotBindings[BindingIndex].TechniqueId)
+            ? FindProceduralTechnique(Style, Style->SlotBindings[BindingIndex].TechniqueId)
             : nullptr;
     }
 }
@@ -72,9 +72,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirTwoTechniquesOneBaseMotionTest::RunTest(const FString& Parameters)
 {
-    const UKashmirWeaponCombatStyle* Style = LoadStyle();
-    const FKashmirCombatTechniqueDefinition* Quick = FindTechnique(Style, QuickId);
-    const FKashmirCombatTechniqueDefinition* Wide = FindTechnique(Style, WideId);
+    const UKashmirWeaponCombatStyle* Style = LoadProceduralStyle();
+    const FKashmirCombatTechniqueDefinition* Quick = FindProceduralTechnique(Style, ProceduralQuickId);
+    const FKashmirCombatTechniqueDefinition* Wide = FindProceduralTechnique(Style, ProceduralWideId);
     TestNotNull(TEXT("Quick definition exists"), Quick);
     TestNotNull(TEXT("Wide definition exists"), Wide);
     if (Quick == nullptr || Wide == nullptr)
@@ -97,9 +97,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirDistinctTechniquePresentationProfilesTest::RunTest(const FString& Parameters)
 {
-    const UKashmirWeaponCombatStyle* Style = LoadStyle();
-    const FKashmirCombatTechniqueDefinition* Quick = FindTechnique(Style, QuickId);
-    const FKashmirCombatTechniqueDefinition* Wide = FindTechnique(Style, WideId);
+    const UKashmirWeaponCombatStyle* Style = LoadProceduralStyle();
+    const FKashmirCombatTechniqueDefinition* Quick = FindProceduralTechnique(Style, ProceduralQuickId);
+    const FKashmirCombatTechniqueDefinition* Wide = FindProceduralTechnique(Style, ProceduralWideId);
     if (Quick == nullptr || Wide == nullptr)
     {
         AddError(TEXT("Quick and Wide definitions must exist"));
@@ -108,7 +108,7 @@ bool FKashmirDistinctTechniquePresentationProfilesTest::RunTest(const FString& P
     TestTrue(TEXT("Quick owns a procedural presentation override"), Quick->bOverrideSwordPresentation);
     TestTrue(TEXT("Wide owns a procedural presentation override"), Wide->bOverrideSwordPresentation);
     TestTrue(TEXT("Profiles are spatially distinct"),
-        ProfilesDiffer(Quick->SwordPresentation, Wide->SwordPresentation));
+        ProceduralProfilesDiffer(Quick->SwordPresentation, Wide->SwordPresentation));
     FString Reason;
     TestTrue(TEXT("Quick profile validates"), Quick->SwordPresentation.IsValid(Reason));
     Reason.Reset();
@@ -124,10 +124,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirTechniquePresentationProfileResolutionTest::RunTest(const FString& Parameters)
 {
-    UKashmirWeaponCombatStyle* SourceStyle = LoadStyle();
-    UKashmirDirectionalSwordProfile* Profile = LoadProfile();
-    const FKashmirCombatTechniqueDefinition* Quick = FindTechnique(SourceStyle, QuickId);
-    const FKashmirCombatTechniqueDefinition* Wide = FindTechnique(SourceStyle, WideId);
+    UKashmirWeaponCombatStyle* SourceStyle = LoadProceduralStyle();
+    UKashmirDirectionalSwordProfile* Profile = LoadProceduralProfile();
+    const FKashmirCombatTechniqueDefinition* Quick = FindProceduralTechnique(SourceStyle, ProceduralQuickId);
+    const FKashmirCombatTechniqueDefinition* Wide = FindProceduralTechnique(SourceStyle, ProceduralWideId);
     if (SourceStyle == nullptr || Profile == nullptr || Quick == nullptr || Wide == nullptr)
     {
         AddError(TEXT("Procedural authoring assets must load"));
@@ -193,7 +193,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirProceduralAuthoringExistingBaselineTest::RunTest(const FString& Parameters)
 {
-    const UKashmirWeaponCombatStyle* Style = LoadStyle();
+    const UKashmirWeaponCombatStyle* Style = LoadProceduralStyle();
     TestNotNull(TEXT("Sword style loads"), Style);
     if (Style == nullptr)
     {
@@ -214,8 +214,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirTechniqueRequestRejectsNonCancellableActionTest::RunTest(const FString& Parameters)
 {
-    UKashmirWeaponCombatStyle* Style = LoadStyle();
-    UKashmirDirectionalSwordProfile* Profile = LoadProfile();
+    UKashmirWeaponCombatStyle* Style = LoadProceduralStyle();
+    UKashmirDirectionalSwordProfile* Profile = LoadProceduralProfile();
     if (Style == nullptr || Profile == nullptr || Style->SlotBindings.Num() < 2)
     {
         AddError(TEXT("Baseline style and profile require at least two bound Techniques"));
@@ -258,10 +258,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FKashmirTechniqueRequestCancelsInAuthoredWindowTest::RunTest(const FString& Parameters)
 {
-    UKashmirWeaponCombatStyle* Style = LoadStyle();
-    UKashmirDirectionalSwordProfile* SourceProfile = LoadProfile();
-    const FKashmirCombatTechniqueDefinition* FirstTechnique = FindBoundTechnique(Style, 0);
-    const FKashmirCombatTechniqueDefinition* SecondTechnique = FindBoundTechnique(Style, 1);
+    UKashmirWeaponCombatStyle* Style = LoadProceduralStyle();
+    UKashmirDirectionalSwordProfile* SourceProfile = LoadProceduralProfile();
+    const FKashmirCombatTechniqueDefinition* FirstTechnique = FindProceduralBoundTechnique(Style, 0);
+    const FKashmirCombatTechniqueDefinition* SecondTechnique = FindProceduralBoundTechnique(Style, 1);
     if (Style == nullptr || SourceProfile == nullptr || FirstTechnique == nullptr || SecondTechnique == nullptr)
     {
         AddError(TEXT("Baseline style/profile and first two bound Techniques must load"));

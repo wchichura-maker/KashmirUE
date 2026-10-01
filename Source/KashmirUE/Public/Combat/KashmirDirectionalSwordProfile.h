@@ -90,6 +90,10 @@ struct KASHMIRUE_API FKashmirSwordActionPlan
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FKashmirActionDefinition RuntimeDefinition;
 
+    /** Resolved Technique identity; metadata only, never execution authority. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FName TechniqueId;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     TSoftObjectPtr<UAnimMontage> Montage;
 

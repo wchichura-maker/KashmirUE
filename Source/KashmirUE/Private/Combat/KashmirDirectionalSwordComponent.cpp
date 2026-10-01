@@ -317,6 +317,7 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
     Plan.Montage = TechniquePlan.Technique.Montage;
     Plan.MontageSection = TechniquePlan.Technique.MontageSection;
     Plan.PlayRate = TechniquePlan.Technique.PlayRate;
+    Plan.TechniqueId = TechniquePlan.Technique.TechniqueId;
     Plan.MovementIntent = TechniquePlan.Technique.MovementIntent;
     Plan.MovementSpec = TechniquePlan.Technique.MovementSpec;
     if (TechniquePlan.Technique.bOverrideSwordPresentation)

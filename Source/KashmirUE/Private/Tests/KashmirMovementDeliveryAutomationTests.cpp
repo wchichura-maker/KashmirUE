@@ -14,23 +14,23 @@
 
 namespace
 {
-    constexpr const TCHAR* StylePath =
+    constexpr const TCHAR* MovementDeliveryStylePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirSword_CombatStyle_Baseline.")
         TEXT("DA_KashmirSword_CombatStyle_Baseline");
-    constexpr const TCHAR* ProfilePath =
+    constexpr const TCHAR* MovementDeliveryProfilePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirDirectionalSword_Baseline.")
         TEXT("DA_KashmirDirectionalSword_Baseline");
 
     UKashmirWeaponCombatStyle* LoadMovementDeliveryStyle()
     {
-        return LoadObject<UKashmirWeaponCombatStyle>(nullptr, StylePath);
+        return LoadObject<UKashmirWeaponCombatStyle>(nullptr, MovementDeliveryStylePath);
     }
 
     UKashmirDirectionalSwordProfile* LoadMovementDeliveryProfile()
     {
-        return LoadObject<UKashmirDirectionalSwordProfile>(nullptr, ProfilePath);
+        return LoadObject<UKashmirDirectionalSwordProfile>(nullptr, MovementDeliveryProfilePath);
     }
 
     struct FMovementDeliveryPlanWorld

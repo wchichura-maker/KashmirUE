@@ -33,26 +33,26 @@ namespace
         }
     };
 
-    constexpr const TCHAR* StylePath =
+    constexpr const TCHAR* MovementIntentStylePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirSword_CombatStyle_Baseline.")
         TEXT("DA_KashmirSword_CombatStyle_Baseline");
-    constexpr const TCHAR* ProfilePath =
+    constexpr const TCHAR* MovementIntentProfilePath =
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirDirectionalSword_Baseline.")
         TEXT("DA_KashmirDirectionalSword_Baseline");
     const FName FullBodyId(TEXT("Technique.Sword.Test.FullBody"));
-    const FName QuickId(TEXT("Technique.Sword.Diagonal.Rising.Quick"));
-    const FName WideId(TEXT("Technique.Sword.Diagonal.Rising.Wide"));
+    const FName MovementIntentQuickId(TEXT("Technique.Sword.Diagonal.Rising.Quick"));
+    const FName MovementIntentWideId(TEXT("Technique.Sword.Diagonal.Rising.Wide"));
 
     UKashmirWeaponCombatStyle* LoadMovementIntentStyle()
     {
-        return LoadObject<UKashmirWeaponCombatStyle>(nullptr, StylePath);
+        return LoadObject<UKashmirWeaponCombatStyle>(nullptr, MovementIntentStylePath);
     }
 
     UKashmirDirectionalSwordProfile* LoadMovementIntentProfile()
     {
-        return LoadObject<UKashmirDirectionalSwordProfile>(nullptr, ProfilePath);
+        return LoadObject<UKashmirDirectionalSwordProfile>(nullptr, MovementIntentProfilePath);
     }
 
     const FKashmirCombatTechniqueDefinition* FindMovementIntentTechnique(
@@ -225,7 +225,7 @@ bool FKashmirMovementIntentBaselineTest::RunTest(const FString& Parameters)
                 Technique->MovementIntent, EKashmirMovementIntent::Stationary);
         }
     }
-    for (const FName Id : { QuickId, WideId })
+    for (const FName Id : { MovementIntentQuickId, MovementIntentWideId })
     {
         const FKashmirCombatTechniqueDefinition* Technique = FindMovementIntentTechnique(Style, Id);
         TestNotNull(*FString::Printf(TEXT("%s exists"), *Id.ToString()), Technique);
