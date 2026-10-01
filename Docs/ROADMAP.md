@@ -240,7 +240,9 @@ Pendente para concluir UE2.1:
   o forward horizontal do personagem, aplica `Distance / Duration` por
   `CharacterMovement` com sweep e encerra por conclusão, cancelamento, fim da
   Action ou bloqueio. Colisão pode reduzir a distância efetiva sem compensação.
-  Todas as Techniques atuais permanecem `None`; StepForward jogável, prediction,
+  Todas as Techniques vinculadas/jogáveis atuais permanecem `None`. A Technique
+  persistente e não vinculada `Technique.Sword.Test.StepForward` usa o delivery
+  genérico `ControlledTranslation`; tornar StepForward jogável, prediction,
   replay e server authority permanecem pendentes. MovementIntent,
   MovementDelivery e Root Motion continuam contratos independentes.
   A rota pública de cancelamento agora passa pelo `ActionRuntime` e respeita
@@ -252,20 +254,31 @@ Pendente para concluir UE2.1:
   `RequestedDistance=80 cm`, sem teleport, compensação ou movimento residual.
   Slope permanece futuro/non-blocking. Cruzar ledge sem colisão continua
   fisicamente permitido até uma futura `LedgePolicy`/`GroundSupportPolicy`.
-- **UE2.3.13 — StepForward v0.1:** `IMPLEMENTED / AUTOMATION VALIDATED / PIE
-  VALIDATED` como prova transitória, somente em fixture de teste. A Technique
-  `Technique.Sword.Test.StepForward` copia a baseline vinculada ao Slot1
+- **UE2.3.13 — StepForward v0.1 persistent authoring:** `IMPLEMENTED /
+  AUTOMATION VALIDATED / PIE VALIDATED`. A Technique persistente
+  `Technique.Sword.Test.StepForward` agora existe em
+  `DA_KashmirSword_CombatStyle_Baseline` e copia a baseline vinculada ao Slot1
   (`Technique.Sword.Horizontal.LeftToRight`, `Sword.Direct.Right`,
   `AM_KashmirSword_HorizontalA`), troca somente `MovementIntent` para
   `FullBody` e configura o spec genérico `ControlledTranslation` como `80 cm /
   0.25 s / Forward`. O deslocamento começa em `t=0`, permanece independente de
   Root Motion e preserva montage, damage, WeaponTrace e HitEvidence da
-  baseline. Automation valida conclusão em 80 cm, cancelamento em 32 cm sem
-  residual, bloqueio sem compensação e separação entre Movement Intent e
-  Movement Delivery. PIE confirmou free space em `80 cm / 0.25 s` a `320
+  baseline. O asset contém oito Techniques e mantém exatamente os quatro
+  bindings anteriores (Slots 1–4); StepForward permanece sem binding, Slot 5
+  continua ausente e nenhum input foi criado. A fixture deixou de recriar a
+  definição: ela lê a Technique persistente e altera apenas uma cópia transitória
+  do binding para exercitar o pipeline normal. Automation valida 19/19 checks de
+  autoria/execução e a regressão completa de Combat passa 152/152. A prova
+  transitória anterior confirmou em PIE free space em `80 cm / 0.25 s` a `320
   cm/s`, bloqueio em `47.3536 cm`, cancelamento aceito em `32 cm`, cancelamento
-  recusado preservando Action/Delivery e cleanup completo sem residual. Nenhum
-  Data Asset, Slot ou input persistente foi alterado.
+  recusado preservando Action/Delivery e cleanup completo sem residual. A
+  revalidação da autoria persistente carregou o Style real sem reconstruir a
+  `FKashmirCombatTechniqueDefinition`, confirmou o plano `80 / 0.25 / Forward`,
+  `24` de damage, `20` de guard damage e timing total `0.600 s`; free space
+  completou aproximadamente `80 cm`, blocker encerrou em `44.8 cm`, cancelamento
+  em aproximadamente `32 cm` não deixou residual e o asset permaneceu limpo com
+  `8` Techniques e `4` bindings. Isso não torna a Technique jogável nem aprova
+  artisticamente sua apresentação.
   StepForward não agravou os defeitos visuais já registrados de pernas rápidas,
   base larga/foot slide, torso twist e baixa participação da pelvis; esse
   trabalho permanece separado em `Locomotion / Combat Presentation Polish`.

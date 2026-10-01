@@ -486,8 +486,10 @@
 - `EKashmirMovementDelivery` começa apenas com `None` e
   `ControlledTranslation`. `FKashmirTechniqueMovementSpec` contém delivery,
   distância, duração e direção lógica relativa; v0.1 expõe somente `Forward`.
-- Todas as Techniques atuais permanecem com `Delivery=None`. Não existe
-  StepForward jogável nesta etapa.
+- Todas as Techniques atualmente vinculadas/jogáveis permanecem com
+  `Delivery=None`. `Technique.Sword.Test.StepForward` existe como definição
+  persistente sem binding e usa `ControlledTranslation`; não existe StepForward
+  jogável nesta etapa.
 - O spec percorre `CombatTechniqueDefinition -> SwordActionPlan` sem alterar
   MovementIntent, montage, damage, WeaponTrace, HitEvidence, hurtboxes ou
   CombatResult.
@@ -530,9 +532,11 @@
 - Observabilidade de desenvolvimento expõe estado ativo, distância solicitada e
   efetiva, tempo, velocidade/delta solicitados, bloqueio e motivo de término,
   sem autoridade de gameplay adicional.
-- Todas as Techniques publicadas continuam `Delivery=None`; portanto nenhum
-  golpe jogável foi alterado e StepForward permanece **PENDING**. Prediction,
-  server authority, replay e novas direções também permanecem **PENDING**.
+- Todas as Techniques vinculadas continuam `Delivery=None`; portanto nenhum
+  golpe jogável foi alterado. A autoria persistente de StepForward está
+  implementada e validada em PIE, mas seu binding permanece **PENDING**.
+  Prediction, server authority, replay e novas direções também permanecem
+  **PENDING**.
 - Cruzar uma borda sem colisão frontal e entrar em `MOVE_FALLING` não é tratado
   como blocking collision. Uma futura `LedgePolicy`/`GroundSupportPolicy` deverá
   decidir por Technique entre permitir queda, parar na borda ou exigir suporte
@@ -551,31 +555,45 @@
 ## UE-0028 — StepForward é semântica de Technique, não modo de Movement Delivery
 
 - **Status da decisão:** **DECIDED** em 2026-09-30.
-- **Status técnico:** prova transitória **IMPLEMENTED / AUTOMATION VALIDATED /
-  PIE VALIDATED**; nenhum conteúdo jogável persistente foi criado.
+- **Status técnico:** autoria persistente **IMPLEMENTED / AUTOMATION VALIDATED /
+  PIE VALIDATED**. A prova transitória anterior permanece **PIE VALIDATED / PUSHED**;
+  nenhum binding ou conteúdo jogável persistente foi criado.
 - `Technique.Sword.Test.StepForward` é a composição de identidade da Technique,
   Base Motion, `MovementIntent=FullBody`, `MovementDelivery=ControlledTranslation`
   e spec `80 cm / 0.25 s / Forward`. Não existe e não deve existir
   `EKashmirMovementDelivery::StepForward`.
-- A prova copia em memória a Technique baseline do Slot1
+- A definição persistente em `DA_KashmirSword_CombatStyle_Baseline` copia a
+  Technique baseline do Slot1
   (`Technique.Sword.Horizontal.LeftToRight`) e preserva seu `ActionId`
   `Sword.Direct.Right`, montage `AM_KashmirSword_HorizontalA`, damage,
   WeaponTrace, HitEvidence e timing de combate. Somente a identidade, o
-  Movement Intent e o MovementSpec da cópia transitória mudam.
+  Movement Intent e o MovementSpec da nova definição mudam. O sufixo `Test` foi
+  preservado porque o mesmo asset já usa a convenção para a Technique persistente
+  e não vinculada `Technique.Sword.Test.FullBody`; não houve renome por preferência.
 - O delivery inicia em `t=0`, sem offset, easing, curve, startup delay ou
   dependência de Root Motion. Cancelamento continua sob autoridade do
   `ActionRuntime`; colisão pode encerrar o delivery como `Blocked` sem cancelar
   ou corromper automaticamente a Action.
-- A fixture redireciona somente uma cópia transitória do primeiro binding. O
-  Data Asset publicado mantém seus quatro bindings, todas as Techniques
-  persistentes continuam `Delivery=None`, e não há input ou Slot permanente
-  para StepForward.
+- O Data Asset agora contém oito Techniques e mantém exatamente os quatro
+  bindings anteriores dos Slots 1–4. StepForward não aparece em nenhum binding,
+  Slot 5 continua ausente e nenhum input foi criado. A fixture lê a definição
+  persistente e redireciona somente uma cópia transitória do primeiro binding
+  para provar resolução pelo pipeline normal; ela não recria StepForward.
 - PIE validou free space (`80 cm`, `0.25 s`, `320 cm/s`, `Completed`), blocker
   (`47.3536 cm`, `Blocked`), cancelamento aceito (`32 cm`, `Interrupted` /
   `Cancelled`), cancelamento recusado e cleanup completo. Trace, montage e
   presentation permaneceram sincronizados; o hit baseline continuou em `-24
   HP`.
-- Tornar StepForward um binding jogável persistente e decidir refinamentos v0.2
+- A revalidação da definição persistente carregou o Style real e usou somente
+  uma cópia transitória do Style/binding, sem reconstruir StepForward. O plano
+  preservou `BaseDamage=24`, `BaseGuardDamage=20`, timing
+  `0.180/0.140/0.280` (`0.600 s` total), montage e spec. Free space completou
+  aproximadamente `80 cm`, blocker encerrou em `44.8 cm`, cancelamento aceito
+  encerrou em aproximadamente `32 cm`, e o pós-PIE permaneceu com `8` Techniques,
+  `4` bindings, Slot 5 ausente e nenhum Content/map dirty.
+- Automation valida 19/19 checks de StepForward, 152/152 de Combat, 8/8 de
+  DirectionalSword e 6/6 de Foundation. Tornar StepForward um binding jogável
+  persistente e decidir refinamentos v0.2
   (offset, easing, curve ou política de ledge) permanecem **PENDING**.
 - Limitações não bloqueantes: a recusa de `CancelCurrentAction` não devolve o
   reason corretamente via Python; trace/montage exigem ticks reais de animação;
