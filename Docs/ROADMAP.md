@@ -312,17 +312,22 @@ Pendente para concluir UE2.1:
   Technique, animação ou input foi adicionada. `CombatMotionGrammar` passa
   12/12; Combat 174/174; Foundation 6/6.
 - **UE2.3.16 — Technique Transition Grammar v0.1:** `IMPLEMENTED / AUTOMATION
-  VALIDATED / UNCOMMITTED`. `UKashmirWeaponCombatStyle` agora autora e resolve
+  VALIDATED / PIE VALIDATED`. `UKashmirWeaponCombatStyle` agora autora e resolve
   regras data-driven `TechniqueId -> TechniqueId` por janela absoluta do
   `ActionRuntime`, tags e prioridade. `UKashmirDirectionalSwordComponent`
   coordena a troca transacional de runtime, MovementDelivery, WeaponTrace e
   SwordPresentation; `Transitioned(A) -> Started(B)` permanece semanticamente
   distinto de `Interrupted(A)`. Techniques que compartilham o mesmo `ActionId`
-  continuam distintas. A prova Slot1 -> Slot2 usa somente uma cópia transitória
-  do Style, com a timeline real `0.180 / 0.140 / 0.280 s` e janela
-  `[0.320, 0.470] s`; o Data Asset baseline não foi alterado. Input buffering,
-  condições por resultado de combate e graph authoring avançado permanecem
-  `PENDING`. A suíte dedicada passa 9/9, Combat 183/183 e Foundation 6/6.
+  continuam distintas. O Style baseline persiste exatamente uma regra Slot1 ->
+  Slot2, prioridade zero, sem tags, com timeline real `0.180 / 0.140 / 0.280 s`
+  e janela `[0.320, 0.470] s`. PIE recusou `0.22`/`0.53 s`, aceitou
+  `0.35`/`0.4333`/`0.450 s`, emitiu `Transitioned(A) -> Started(B)` sem
+  `Interrupted(A)`, preservou o pawn imóvel e produziu damage `100 -> 76 -> 52`
+  com trace generation `7 -> 8` no mesmo alvo. Slot2 standalone passou e Slot5
+  permaneceu safe-unbound. Input buffering, condições por resultado de combate,
+  graph authoring avançado e smoothness/blend visual por vídeo contínuo
+  permanecem `PENDING`. A suíte dedicada passa 9/9, Combat 183/183 e Foundation
+  6/6.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova

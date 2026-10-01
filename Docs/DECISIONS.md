@@ -754,9 +754,9 @@
 ## UE-0031 — Technique Transition Grammar é uma camada acima do ActionRuntime
 
 - **Status da decisão:** **DECIDED** em 2026-10-01.
-- **Status técnico:** v0.1 **IMPLEMENTED / AUTOMATION VALIDATED / UNCOMMITTED**;
-  autoria persistente no Style baseline, input buffering e condições por
-  resultado de combate permanecem **PENDING**.
+- **Status técnico:** v0.1 **IMPLEMENTED / AUTOMATION VALIDATED / PIE
+  VALIDATED**; a primeira regra está persistida no Style baseline. Input
+  buffering e condições por resultado de combate permanecem **PENDING**.
 - Technique transition, Action transition e cancelamento são operações
   semanticamente distintas. Uma Technique transition aceita emite
   `Transitioned(A)` seguido por `Started(B)`; cancelamento continua emitindo
@@ -789,11 +789,23 @@
   input buffer v0.1: requests antes/depois da janela continuam no comportamento
   anterior. OnHit, OnMiss, OnBlock, OnParry e OnGuardBreak não participam da
   elegibilidade v0.1.
-- A primeira prova usa uma cópia transitória do Style baseline, sem salvar o
-  Data Asset. Slot1 `Technique.Sword.Horizontal.LeftToRight` transiciona para
-  Slot2 `Technique.Sword.Diagonal.Rising.RightToLeft` na janela inclusiva
-  `[0.320, 0.470] s`, iniciada no fim de Active (`0.180 + 0.140`) e cobrindo os
-  primeiros `0.150 s` da Recovery real (`0.280 s`).
+- O Style baseline persiste exatamente uma regra: Slot1
+  `Technique.Sword.Horizontal.LeftToRight` para Slot2
+  `Technique.Sword.Diagonal.Rising.RightToLeft`, prioridade zero, sem tags, na
+  janela inclusiva `[0.320, 0.470] s`. A janela começa no fim de Active
+  (`0.180 + 0.140`) e cobre os primeiros `0.150 s` da Recovery real (`0.280 s`).
+- Evidência PIE: requests em `0.22 s` e `0.53 s` foram recusados; `0.35 s`,
+  `0.4333 s` e `0.450 s` foram aceitos. A troca emitiu `Transitioned(A) ->
+  Started(B)` sem `Interrupted(A)`; B reiniciou em Startup/elapsed zero e
+  completou sua duração de `0.600 s`.
+- Com o pawn imóvel e o alvo temporariamente em alcance somente durante PIE,
+  Health passou `100 -> 76 -> 52`, com 24 damage por Technique. A geração de
+  trace passou `7 -> 8`, e B atingiu novamente o mesmo alvo, provando fechamento
+  de A, limpeza do hit-set e nova contact identity. Slot2 standalone passou e
+  Slot5 permaneceu safe-unbound.
+- Nenhum T-pose ou resíduo foi observado no frame capturado. Smoothness temporal,
+  blend e polish visual contínuo permanecem **UNVERIFIED / PENDING** porque não
+  houve validação por vídeo contínuo.
 - Evidência: full `KashmirUEEditor` build; TechniqueTransitionGrammar 9/9;
   CombatMotionGrammar 12/12; OffensiveMovementGrammar 10/10; StepForward 19/19;
   MovementDeliveryRuntime 19/19; MovementDelivery 5/5; MovementIntent 6/6;

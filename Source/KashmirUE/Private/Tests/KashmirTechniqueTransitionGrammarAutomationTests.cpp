@@ -546,6 +546,122 @@ bool FTechniqueTransitionBaselineProofTest::RunTest(const FString& Parameters)
     {
         return false;
     }
+
+    const FName FromTechniqueId(
+        TEXT("Technique.Sword.Horizontal.LeftToRight"));
+    const FName ToTechniqueId(
+        TEXT("Technique.Sword.Diagonal.Rising.RightToLeft"));
+    const FName StepForwardTechniqueId(
+        TEXT("Technique.Sword.Test.StepForward"));
+    FString Reason;
+    TestTrue(TEXT("Persistent baseline style is valid"),
+        BaselineStyle->ValidateStyle(Reason));
+    TestEqual(TEXT("Persistent baseline retains eight Techniques"),
+        BaselineStyle->Techniques.Num(), 8);
+    TestEqual(TEXT("Persistent baseline retains four Slot bindings"),
+        BaselineStyle->SlotBindings.Num(), 4);
+    TestEqual(TEXT("Persistent baseline owns exactly one transition rule"),
+        BaselineStyle->TransitionRules.Num(), 1);
+    if (BaselineStyle->TransitionRules.Num() != 1)
+    {
+        return false;
+    }
+
+    const FKashmirTechniqueTransitionRule& PersistentRule =
+        BaselineStyle->TransitionRules[0];
+    TestEqual(TEXT("Persistent rule source is Slot1 Technique"),
+        PersistentRule.FromTechniqueId, FromTechniqueId);
+    TestEqual(TEXT("Persistent rule destination is Slot2 Technique"),
+        PersistentRule.ToTechniqueId, ToTechniqueId);
+    TestEqual(TEXT("Persistent rule minimum elapsed is 0.320 s"),
+        PersistentRule.MinElapsed, 0.320f);
+    TestEqual(TEXT("Persistent rule maximum elapsed is 0.470 s"),
+        PersistentRule.MaxElapsed, 0.470f);
+    TestEqual(TEXT("Persistent rule priority remains zero"),
+        PersistentRule.Priority, 0);
+    TestTrue(TEXT("Persistent rule requires no tags"),
+        PersistentRule.RequiredTags.IsEmpty());
+    TestTrue(TEXT("Persistent rule blocks no tags"),
+        PersistentRule.BlockedTags.IsEmpty());
+
+    const FKashmirCombatTechniqueDefinition* FromTechnique =
+        BaselineStyle->Techniques.FindByPredicate(
+            [&FromTechniqueId](const FKashmirCombatTechniqueDefinition& Technique)
+            {
+                return Technique.TechniqueId == FromTechniqueId;
+            });
+    const FKashmirCombatTechniqueDefinition* ToTechnique =
+        BaselineStyle->Techniques.FindByPredicate(
+            [&ToTechniqueId](const FKashmirCombatTechniqueDefinition& Technique)
+            {
+                return Technique.TechniqueId == ToTechniqueId;
+            });
+    const FKashmirCombatTechniqueDefinition* StepForward =
+        BaselineStyle->Techniques.FindByPredicate(
+            [&StepForwardTechniqueId](const FKashmirCombatTechniqueDefinition& Technique)
+            {
+                return Technique.TechniqueId == StepForwardTechniqueId;
+            });
+    TestNotNull(TEXT("Persistent rule source Technique exists"), FromTechnique);
+    TestNotNull(TEXT("Persistent rule destination Technique exists"), ToTechnique);
+    TestNotNull(TEXT("Persistent StepForward remains present"), StepForward);
+
+    const FKashmirTechniqueSlotBinding* Slot1Binding =
+        BaselineStyle->SlotBindings.FindByPredicate(
+            [](const FKashmirTechniqueSlotBinding& Binding)
+            {
+                return Binding.Slot == EKashmirTechniqueSlot::TechniqueSlot1;
+            });
+    const FKashmirTechniqueSlotBinding* Slot2Binding =
+        BaselineStyle->SlotBindings.FindByPredicate(
+            [](const FKashmirTechniqueSlotBinding& Binding)
+            {
+                return Binding.Slot == EKashmirTechniqueSlot::TechniqueSlot2;
+            });
+    TestNotNull(TEXT("Slot1 binding remains present"), Slot1Binding);
+    TestNotNull(TEXT("Slot2 binding remains present"), Slot2Binding);
+    if (FromTechnique == nullptr || ToTechnique == nullptr ||
+        StepForward == nullptr || Slot1Binding == nullptr || Slot2Binding == nullptr)
+    {
+        return false;
+    }
+    TestEqual(TEXT("Rule source matches the Slot1 binding"),
+        PersistentRule.FromTechniqueId, Slot1Binding->TechniqueId);
+    TestEqual(TEXT("Rule destination matches the Slot2 binding"),
+        PersistentRule.ToTechniqueId, Slot2Binding->TechniqueId);
+    TestFalse(TEXT("Slot5 remains unbound"),
+        BaselineStyle->SlotBindings.ContainsByPredicate(
+            [](const FKashmirTechniqueSlotBinding& Binding)
+            {
+                return Binding.Slot == EKashmirTechniqueSlot::TechniqueSlot5;
+            }));
+    TestFalse(TEXT("StepForward remains unbound"),
+        BaselineStyle->SlotBindings.ContainsByPredicate(
+            [&StepForwardTechniqueId](const FKashmirTechniqueSlotBinding& Binding)
+            {
+                return Binding.TechniqueId == StepForwardTechniqueId;
+            }));
+    TestTrue(TEXT("StepForward definition remains valid"),
+        StepForward->IsValid(Reason));
+    TestEqual(TEXT("StepForward retains Sword.Direct.Right"),
+        StepForward->ActionId, FName(TEXT("Sword.Direct.Right")));
+    TestEqual(TEXT("StepForward retains FullBody presentation"),
+        StepForward->MovementIntent, EKashmirMovementIntent::FullBody);
+    TestEqual(TEXT("StepForward retains ControlledTranslation"),
+        StepForward->MovementSpec.Delivery,
+        EKashmirMovementDelivery::ControlledTranslation);
+    TestEqual(TEXT("StepForward retains 80 cm distance"),
+        StepForward->MovementSpec.Distance, 80.0f);
+    TestEqual(TEXT("StepForward retains 0.25 s duration"),
+        StepForward->MovementSpec.Duration, 0.25f);
+    TestEqual(TEXT("StepForward remains Actor-relative"),
+        StepForward->MovementSpec.Reference, EKashmirMovementReference::Actor);
+    TestEqual(TEXT("StepForward remains Forward"),
+        StepForward->MovementSpec.Direction, EKashmirMovementDirection::Forward);
+    TestEqual(TEXT("StepForward remains target-independent"),
+        StepForward->MovementSpec.TargetPolicy,
+        EKashmirMovementTargetPolicy::NotRequired);
+
     UKashmirWeaponCombatStyle* FixtureStyle = DuplicateObject<UKashmirWeaponCombatStyle>(
         BaselineStyle, GetTransientPackage());
     const FKashmirSwordAuthoredAction* SourceAction =
@@ -556,12 +672,10 @@ bool FTechniqueTransitionBaselineProofTest::RunTest(const FString& Parameters)
     }
     const float WindowStart = SourceAction->StartupDuration + SourceAction->ActiveDuration;
     const float WindowEnd = WindowStart + FMath::Min(0.15f, SourceAction->RecoveryDuration);
-    FixtureStyle->TransitionRules.Add(MakeRule(
-        TEXT("Technique.Sword.Horizontal.LeftToRight"),
-        TEXT("Technique.Sword.Diagonal.Rising.RightToLeft"),
-        WindowStart,
-        WindowEnd,
-        100));
+    TestEqual(TEXT("Persistent window begins at the end of source Active"),
+        PersistentRule.MinElapsed, WindowStart);
+    TestEqual(TEXT("Persistent window covers the approved Recovery interval"),
+        PersistentRule.MaxElapsed, WindowEnd);
     AddInfo(FString::Printf(
         TEXT("Slot1 timeline startup=%.3f active=%.3f recovery=%.3f; proof window=[%.3f, %.3f]"),
         SourceAction->StartupDuration,
@@ -573,7 +687,6 @@ bool FTechniqueTransitionBaselineProofTest::RunTest(const FString& Parameters)
     UKashmirDirectionalSwordComponent* Sword =
         NewObject<UKashmirDirectionalSwordComponent>();
     Sword->SetProfile(Profile);
-    FString Reason;
     TestTrue(TEXT("Baseline Slot1 starts"), Sword->StartTechniqueRequest(
         MakeRequest(EKashmirTechniqueSlot::TechniqueSlot1), FixtureStyle, Reason));
     TestTrue(TEXT("Baseline advances to end of Active"),
@@ -583,9 +696,7 @@ bool FTechniqueTransitionBaselineProofTest::RunTest(const FString& Parameters)
             MakeRequest(EKashmirTechniqueSlot::TechniqueSlot2), FixtureStyle, Reason));
     TestEqual(TEXT("Destination is Slot2 Technique"),
         Sword->GetActivePlan().TechniqueId,
-        FName(TEXT("Technique.Sword.Diagonal.Rising.RightToLeft")));
-    TestEqual(TEXT("Baseline asset remains without persistent transition rules"),
-        BaselineStyle->TransitionRules.Num(), 0);
+        ToTechniqueId);
     return true;
 }
 
