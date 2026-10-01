@@ -252,6 +252,23 @@ Pendente para concluir UE2.1:
   `RequestedDistance=80 cm`, sem teleport, compensação ou movimento residual.
   Slope permanece futuro/non-blocking. Cruzar ledge sem colisão continua
   fisicamente permitido até uma futura `LedgePolicy`/`GroundSupportPolicy`.
+- **UE2.3.13 — StepForward v0.1:** `IMPLEMENTED / AUTOMATION VALIDATED / PIE
+  VALIDATED` como prova transitória, somente em fixture de teste. A Technique
+  `Technique.Sword.Test.StepForward` copia a baseline vinculada ao Slot1
+  (`Technique.Sword.Horizontal.LeftToRight`, `Sword.Direct.Right`,
+  `AM_KashmirSword_HorizontalA`), troca somente `MovementIntent` para
+  `FullBody` e configura o spec genérico `ControlledTranslation` como `80 cm /
+  0.25 s / Forward`. O deslocamento começa em `t=0`, permanece independente de
+  Root Motion e preserva montage, damage, WeaponTrace e HitEvidence da
+  baseline. Automation valida conclusão em 80 cm, cancelamento em 32 cm sem
+  residual, bloqueio sem compensação e separação entre Movement Intent e
+  Movement Delivery. PIE confirmou free space em `80 cm / 0.25 s` a `320
+  cm/s`, bloqueio em `47.3536 cm`, cancelamento aceito em `32 cm`, cancelamento
+  recusado preservando Action/Delivery e cleanup completo sem residual. Nenhum
+  Data Asset, Slot ou input persistente foi alterado.
+  StepForward não agravou os defeitos visuais já registrados de pernas rápidas,
+  base larga/foot slide, torso twist e baixa participação da pelvis; esse
+  trabalho permanece separado em `Locomotion / Combat Presentation Polish`.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova

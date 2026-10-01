@@ -547,3 +547,37 @@
   `ActualDistance=47.3536 cm`, sem teleport, compensação, atravessamento ou
   movimento residual. Slope continua futuro/non-blocking e não integra o gate
   v0.1.
+
+## UE-0028 — StepForward é semântica de Technique, não modo de Movement Delivery
+
+- **Status da decisão:** **DECIDED** em 2026-09-30.
+- **Status técnico:** prova transitória **IMPLEMENTED / AUTOMATION VALIDATED /
+  PIE VALIDATED**; nenhum conteúdo jogável persistente foi criado.
+- `Technique.Sword.Test.StepForward` é a composição de identidade da Technique,
+  Base Motion, `MovementIntent=FullBody`, `MovementDelivery=ControlledTranslation`
+  e spec `80 cm / 0.25 s / Forward`. Não existe e não deve existir
+  `EKashmirMovementDelivery::StepForward`.
+- A prova copia em memória a Technique baseline do Slot1
+  (`Technique.Sword.Horizontal.LeftToRight`) e preserva seu `ActionId`
+  `Sword.Direct.Right`, montage `AM_KashmirSword_HorizontalA`, damage,
+  WeaponTrace, HitEvidence e timing de combate. Somente a identidade, o
+  Movement Intent e o MovementSpec da cópia transitória mudam.
+- O delivery inicia em `t=0`, sem offset, easing, curve, startup delay ou
+  dependência de Root Motion. Cancelamento continua sob autoridade do
+  `ActionRuntime`; colisão pode encerrar o delivery como `Blocked` sem cancelar
+  ou corromper automaticamente a Action.
+- A fixture redireciona somente uma cópia transitória do primeiro binding. O
+  Data Asset publicado mantém seus quatro bindings, todas as Techniques
+  persistentes continuam `Delivery=None`, e não há input ou Slot permanente
+  para StepForward.
+- PIE validou free space (`80 cm`, `0.25 s`, `320 cm/s`, `Completed`), blocker
+  (`47.3536 cm`, `Blocked`), cancelamento aceito (`32 cm`, `Interrupted` /
+  `Cancelled`), cancelamento recusado e cleanup completo. Trace, montage e
+  presentation permaneceram sincronizados; o hit baseline continuou em `-24
+  HP`.
+- Tornar StepForward um binding jogável persistente e decidir refinamentos v0.2
+  (offset, easing, curve ou política de ledge) permanecem **PENDING**.
+- Limitações não bloqueantes: a recusa de `CancelCurrentAction` não devolve o
+  reason corretamente via Python; trace/montage exigem ticks reais de animação;
+  getters de requested velocity/delta zeram após completion; slope, server
+  authority, prediction e replay permanecem futuros.
