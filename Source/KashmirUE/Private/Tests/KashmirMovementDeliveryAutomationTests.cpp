@@ -22,7 +22,8 @@ namespace
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirDirectionalSword_Baseline.")
         TEXT("DA_KashmirDirectionalSword_Baseline");
-    const FName StepForwardTechniqueId(TEXT("Technique.Sword.Test.StepForward"));
+    const FName MovementDeliveryStepForwardTechniqueId(
+        TEXT("Technique.Sword.Test.StepForward"));
 
     UKashmirWeaponCombatStyle* LoadMovementDeliveryStyle()
     {
@@ -106,7 +107,7 @@ bool FKashmirMovementDeliveryBaselineTest::RunTest(const FString& Parameters)
     if (Style == nullptr) return false;
     for (const FKashmirCombatTechniqueDefinition& Technique : Style->Techniques)
     {
-        if (Technique.TechniqueId == StepForwardTechniqueId)
+        if (Technique.TechniqueId == MovementDeliveryStepForwardTechniqueId)
         {
             continue;
         }
@@ -179,6 +180,9 @@ bool FKashmirMovementDeliveryPlanTest::RunTest(const FString& Parameters)
     Technique.MovementSpec.Distance = 80.0f;
     Technique.MovementSpec.Duration = 0.25f;
     Technique.MovementSpec.Direction = EKashmirMovementDirection::Forward;
+    Technique.MovementSpec.Reference = EKashmirMovementReference::Actor;
+    Technique.MovementSpec.TargetPolicy =
+        EKashmirMovementTargetPolicy::NotRequired;
 
     FMovementDeliveryPlanWorld Fixture;
     TestTrue(TEXT("Runtime world initializes"), Fixture.Initialize());
@@ -208,6 +212,11 @@ bool FKashmirMovementDeliveryPlanTest::RunTest(const FString& Parameters)
         Plan.MovementSpec.Duration, 0.25f);
     TestEqual(TEXT("Movement direction reaches the action plan"),
         Plan.MovementSpec.Direction, EKashmirMovementDirection::Forward);
+    TestEqual(TEXT("Movement reference reaches the action plan"),
+        Plan.MovementSpec.Reference, EKashmirMovementReference::Actor);
+    TestEqual(TEXT("Target policy reaches the action plan"),
+        Plan.MovementSpec.TargetPolicy,
+        EKashmirMovementTargetPolicy::NotRequired);
     TestEqual(TEXT("Movement contract preserves presentation intent"),
         Plan.MovementIntent, EKashmirMovementIntent::Stationary);
     TestEqual(TEXT("Movement contract preserves damage"),

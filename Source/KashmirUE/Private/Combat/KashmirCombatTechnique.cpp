@@ -24,6 +24,27 @@ bool FKashmirTechniqueMovementSpec::IsValid(FString& OutReason) const
         OutReason = TEXT("controlled translation requires positive distance and duration");
         return false;
     }
+    if (Reference == EKashmirMovementReference::Actor &&
+        TargetPolicy != EKashmirMovementTargetPolicy::NotRequired)
+    {
+        OutReason = TEXT("actor-relative movement cannot require a target");
+        return false;
+    }
+    if (Reference == EKashmirMovementReference::Target)
+    {
+        if (TargetPolicy == EKashmirMovementTargetPolicy::NotRequired)
+        {
+            OutReason = TEXT("target-relative movement requires an explicit target policy");
+            return false;
+        }
+        OutReason = TEXT("target-relative movement is defined but not executable in v0.1");
+        return false;
+    }
+    if (Direction != EKashmirMovementDirection::Forward)
+    {
+        OutReason = TEXT("movement direction is defined but not executable in v0.1");
+        return false;
+    }
     return true;
 }
 

@@ -82,15 +82,37 @@ enum class EKashmirMovementDelivery : uint8
 };
 
 
-/** Logical direction for authored movement. Expand only when a real Technique requires it. */
+/** Logical direction inside the selected movement reference frame. */
 UENUM(BlueprintType)
 enum class EKashmirMovementDirection : uint8
 {
-    Forward
+    Forward,
+    Backward,
+    Left,
+    Right
 };
 
 
-/** Data-only movement request. Execution remains a future CharacterMovement-owned runtime. */
+/** Reference frame used to resolve authored movement direction. */
+UENUM(BlueprintType)
+enum class EKashmirMovementReference : uint8
+{
+    Actor,
+    Target
+};
+
+
+/** Explicit target availability policy for a target-relative movement request. */
+UENUM(BlueprintType)
+enum class EKashmirMovementTargetPolicy : uint8
+{
+    NotRequired,
+    Required,
+    ActorFallback
+};
+
+
+/** Data-only movement request. Execution remains CharacterMovement-owned. */
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirTechniqueMovementSpec
 {
@@ -107,6 +129,13 @@ struct KASHMIRUE_API FKashmirTechniqueMovementSpec
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     EKashmirMovementDirection Direction = EKashmirMovementDirection::Forward;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EKashmirMovementReference Reference = EKashmirMovementReference::Actor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EKashmirMovementTargetPolicy TargetPolicy =
+        EKashmirMovementTargetPolicy::NotRequired;
 
     bool IsValid(FString& OutReason) const;
 };
