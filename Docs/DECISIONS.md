@@ -599,3 +599,154 @@
   reason corretamente via Python; trace/montage exigem ticks reais de animação;
   getters de requested velocity/delta zeram após completion; slope, server
   authority, prediction e replay permanecem futuros.
+
+## UE-0029 — Voluntary/Offensive Translation Grammar compõe direção sobre primitives
+
+- **Status da decisão:** **DECIDED** em 2026-10-01.
+- **Status técnico:** contrato v0.1 **IMPLEMENTED / AUTOMATION VALIDATED**;
+  target-relative execution, RotationDelivery e novas Techniques permanecem
+  **DESIGN ONLY / PENDING**.
+- **Reclassificação:** esta decisão permanece válida como a subgramática de
+  **Voluntary Combat Translation / Technique Movement** dentro da Combat Motion
+  Grammar definida por UE-0030. O nome histórico “Offensive Movement Grammar”
+  é preservado na suíte v0.1, sem rename massivo ou quebra de API.
+- Technique, `MovementIntent`, `MovementDelivery`, direction/reference frame e
+  semântica de movimento são conceitos distintos. Technique responde “o que”;
+  MovementIntent controla participação corporal; MovementDelivery seleciona o
+  primitive físico; direction/reference compõem a direção mundial; Step/Lunge/
+  Advance/Retreat/Pivot descrevem intenção de design da Technique.
+- `EKashmirMovementDelivery` continua somente `None` e
+  `ControlledTranslation`. Não existem deliveries `StepForward`, `Lunge`,
+  `Retreat` ou `Pivot`.
+- `EKashmirMovementDirection` contém `Forward`, `Backward`, `Left` e `Right`.
+  `EKashmirMovementReference` contém `Actor` e `Target`. No frame `Target`, o
+  eixo Forward representa direção radial toward, Backward representa away e
+  Left/Right representam candidatos tangenciais; essa convenção não autoriza
+  execução por si só.
+- `EKashmirMovementTargetPolicy` torna a disponibilidade de target explícita:
+  `NotRequired`, `Required` ou `ActorFallback`. O runtime v0.1 aceita apenas
+  `Actor + Forward + NotRequired`. Target-relative e demais direções já podem ser
+  expressos como contrato, mas `IsValid()` os rejeita como ainda não executáveis,
+  impedindo que sejam tratados silenciosamente como Actor Forward.
+- Translation e rotation têm autoridades separadas. `ControlledTranslation`
+  não controla yaw. Um futuro Pivot pode combinar translation tangencial,
+  manutenção de facing e uma futura política/entrega de rotação, mas
+  `RotationDelivery` não existe nesta versão. Root Motion permanece contrato
+  separado e não é consumido pelo MovementSpec.
+- Não foi criado `EKashmirTechniqueMovementSemantic`: ainda não há consumidor
+  comportamental de AI, progression ou regras que justifique a taxonomia.
+  TechniqueId, tags, MovementSpec, timing e cancelabilidade já carregam os dados
+  necessários. Uma enum sem consumidor seria apenas metadata decorativa.
+- Timing, commitment e cancelabilidade pertencem a cada Technique e ao
+  `ActionRuntime`; não haverá regra global como “Lunge sempre não cancelável”.
+
+| Semântica | Objetivo | Translation | Target-relative | Rotation | Commitment esperado | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Step | Reposicionamento curto integrado ao ataque | Sim, tipicamente curta | Opcional | Normalmente não | Baixo a médio, definido pela Technique | StepForward é referência IMPLEMENTED; categoria geral DESIGN ONLY |
+| Lunge | Extensão ofensiva explosiva de alcance | Sim | Actor ou Target | Pode preservar facing | Médio a alto, data-driven | DESIGN ONLY |
+| Advance | Progressão ofensiva sustentada | Possivelmente contínua/segmentada | Opcional | Separada | Definido pela Technique | DESIGN ONLY |
+| Retreat | Reposicionamento espacial para trás; não é Dodge | Sim | Actor Backward ou Target Away | Separada | Definido pela Technique | DESIGN ONLY |
+| Pivot | Mudança angular ao redor do target sem pressupor mudança radial | Pode ser tangencial | Normalmente sim | Provavelmente necessária e separada | Definido pela Technique | DESIGN ONLY |
+
+- `Technique.Sword.Test.StepForward` permanece `FullBody`,
+  `ControlledTranslation`, `80 cm / 0.25 s`, `Actor + Forward + NotRequired`,
+  unbound e não artisticamente aprovado. Nenhum asset, input, montage, damage,
+  trace, hurtbox, lock-on, AI ou progression foi alterado.
+- Evidência: full editor build; `OffensiveMovementGrammar` 10/10; StepForward
+  19/19; MovementDeliveryRuntime 19/19; MovementDelivery 5/5; MovementIntent
+  6/6; PlayableGrammar 13/13; Combat 162/162; Foundation 6/6.
+
+## UE-0030 — Combat Motion Grammar Foundation
+
+- **Status da decisão:** **DECIDED** em 2026-10-01.
+- **Status técnico:** separações existentes **IMPLEMENTED / AUTOMATION
+  VALIDATED**; o capability space e os novos contratos enumerados abaixo são
+  **DESIGN ONLY / PENDING**. Nenhuma nova mecânica física foi implementada.
+- Combat Motion não é uma enumeração monolítica. Uma Technique compõe contratos
+  independentes para semântica da ação, apresentação corporal, translation
+  voluntária, futura rotation, combat delivery, defense/evasion, reaction/
+  forced motion e timing/cancellation/resources/targeting.
+- UE-0029 passa a ser a subgramática autoral de translation voluntária. Seu
+  `MovementSpec` continua contendo somente `Delivery`, `Distance`, `Duration`,
+  `Direction`, `Reference` e `TargetPolicy`. `MovementDelivery` é primitive
+  físico; não é a semântica de Dodge, Cast, Grapple, Knockback ou qualquer
+  Technique específica.
+
+### Mapa de responsabilidades
+
+| Conceito | Autoridade existente | Lacuna/contrato futuro |
+| --- | --- | --- |
+| Body presentation | `EKashmirMovementIntent` | Novos intents somente quando houver consumidor real |
+| Voluntary combat translation | `FKashmirTechniqueMovementSpec` + `EKashmirMovementDelivery` + `UKashmirMovementDeliveryComponent` | Executors para novas direções/reference frames, prediction e server authority |
+| Rotation | Nenhuma autoridade de Technique; translation atual preserva yaw | `RotationSpec` / `RotationDelivery` ou contrato equivalente |
+| Attack semantics | `TechniqueId`, `TechniqueFamily`, `AttackDirection`, `AttackShape`, `TechniqueTags` | Vocabulário adicional somente com regra consumidora |
+| Combat delivery | `FKashmirCombatActionDefinition` + `EKashmirDeliveryType` (`Contact`, `Projectile`, `Beam`, `Area`, `Field`, `Grapple`, `Self`, `Target`) | Executors e lifecycle específicos conforme cada domínio |
+| Timing, cancellation e resources | `FKashmirActionDefinition` + `FKashmirActionRuntime` | Autoria ampliada sem cadeia hardcoded |
+| Defense | Guard/Parry/Deflect/Clash resolvers e Defense Pipeline | Autoria integrada de Techniques defensivas |
+| Evasion | Dodge do Character existe como regra própria; não é delivery | Contrato de evasão com hurtbox, invulnerability, perfect window e counters |
+| Casting | Tipos genéricos de combat delivery cobrem alguns outputs | Contrato de cast: tipo, charge/channel, mobility, release, target, interruption e resource commitment |
+| Ranged | Primitives `Projectile`/`Beam` existem | Autoria e lifecycle ranged completos |
+| Aerial | CharacterMovement/Jump determinam estado físico | Contrato combat-air para disponibilidade, launch, gravity/air control e landing transitions |
+| Grapple | `EKashmirDeliveryType::Grapple` existe | Lifecycle e autoridade de grab/pull/shove/throw/takedown |
+| Reaction | `FKashmirHitEvidence`, Stagger e `FKashmirPhysicalReactionResolver` | Integração de presentation/recovery por família de reação |
+| Forced motion | Resultados de combate já podem expressar `Displace`; reação expõe direction/intensity | `ForcedMovementResponse` ou contrato equivalente, separado de voluntary translation |
+| Technique transitions | `FKashmirTransitionRule`, `TransitionTo()` e `GetTransitionOptions()` existem no `ActionRuntime`; o Sword runtime atual usa rules vazias | Technique Transition Grammar autorável e contextual |
+
+### Capability space
+
+- **REFERENCE / DESIGN SPACE:** Locomotion; Voluntary Combat Translation;
+  Rotation; Attack Motion; Defense; Evasion; Counter; Casting; Ranged; Aerial;
+  Grapple; Forced Motion; Reaction; Transformation/Summoned Motion.
+- Registrar uma família não declara implementação. Cada capacidade deve reutilizar
+  contratos existentes ou justificar um contrato novo com consumidor real.
+- Evasion pode compor `ControlledTranslation`, mas possui semântica própria
+  (invulnerability, hurtbox policy, timing perfeito, cancel e counter). Portanto
+  `Dodge`/`Roll` não entram em `EKashmirMovementDelivery`.
+- Casting não é “montage + projectile”. O output `Projectile` ou `Beam` já cabe
+  em combat delivery, mas charge, channel, mobility, release, interruption,
+  targeting e resource commitment exigem lifecycle próprio.
+- Aerial não é `MovementDirection=Up`: envolve movement mode, gravity, launch,
+  air control, disponibilidade de ações e transição de landing.
+- Forced movement é consequência involuntária de resultado de combate.
+  Knockback, pull, launch e throw displacement não reutilizam automaticamente
+  o runtime de movimento voluntário de uma Technique.
+- Translation authority permanece diferente de rotation authority. O executor
+  atual não altera actor yaw nem control rotation; Root Motion também permanece
+  independente.
+
+### Transition e ritmo
+
+- A direção futura é `Action -> Transition Window -> qualquer Technique
+  compatível`, não uma cadeia hardcoded `Attack1 -> Attack2 -> Attack3`.
+  Compatibilidade poderá considerar weapon family, Technique atual, pose/state,
+  grounded/airborne, target distance/angle, contact result, resources, ação
+  anterior, input e progression/unlocks.
+- `FKashmirTransitionRule` já fornece um substrate genérico de janela/tags, mas
+  não constitui ainda a Technique Transition Grammar e o Sword runtime atual
+  passa uma lista vazia de rules.
+- Intenção de feeling: biomecânica fornece coerência; fantasia fornece magnitude
+  e velocidade; baixo tempo morto e transições rápidas sem perder legibilidade.
+  Black Myth: Wukong é referência de peso/leitura; Kashmir pode ser mais rápido;
+  DMC e Black Desert são referências de continuidade/combinabilidade. Isso não
+  autoriza tuning nesta decisão.
+- Permanecem pendentes e fora deste escopo: pernas excessivamente rápidas em
+  locomotion/combate, destaque do problema nos ataques 2 e 4, torso twist alto,
+  pouca participação da pelvis e recovery corporal rápido.
+
+### Evidência e limites
+
+- `Kashmir.Combat.CombatMotionGrammar` valida 12/12 separações estruturais:
+  voluntary translation vs MovementIntent/rotation/forced movement; ausência de
+  Evasion/Casting no delivery; independência de Root Motion; preservação de
+  StepForward; gate target-relative; autoridades existentes; runtime genérico;
+  e ausência de mega-enum sem consumidor.
+- Build `KashmirUEEditor` passou. Regressões: OffensiveMovementGrammar 10/10;
+  StepForward 19/19; MovementDeliveryRuntime 19/19; filtro MovementDelivery
+  24/24 (19 Runtime + 5 base); MovementIntent 6/6; PlayableGrammar 13/13;
+  Combat 174/174; Foundation 6/6.
+- `Technique.Sword.Test.StepForward` permanece o primeiro exemplo validado de
+  Voluntary Combat Translation: `FullBody`, `ControlledTranslation`, `80 cm /
+  0.25 s`, `Actor + Forward + NotRequired`, unbound.
+- Não foram implementados RotationDelivery, Evasion, Casting, Ranged gameplay,
+  Aerial combat, Grapple lifecycle, ForcedMovementResponse, Transition Grammar,
+  novas Techniques, animations ou inputs.

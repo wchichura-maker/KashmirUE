@@ -282,6 +282,35 @@ Pendente para concluir UE2.1:
   StepForward não agravou os defeitos visuais já registrados de pernas rápidas,
   base larga/foot slide, torso twist e baixa participação da pelvis; esse
   trabalho permanece separado em `Locomotion / Combat Presentation Polish`.
+- **UE2.3.14 — Offensive Movement Grammar v0.1:** `IMPLEMENTED / AUTOMATION
+  VALIDATED`. `FKashmirTechniqueMovementSpec` agora separa o primitive físico
+  (`None`/`ControlledTranslation`), a direção lógica (`Forward`, `Backward`,
+  `Left`, `Right`), o reference frame (`Actor`, `Target`) e a política explícita
+  de target (`NotRequired`, `Required`, `ActorFallback`). O runtime v0.1 continua
+  executando somente `Actor + Forward + NotRequired`; combinações futuras são
+  representáveis no contrato, mas rejeitadas por validação para impedir fallback
+  silencioso. Translation não ganha autoridade sobre yaw ou Root Motion.
+  StepForward permanece inalterado, unbound e não artisticamente aprovado.
+  Nenhum enum decorativo de Movement Semantic foi criado: Step, Lunge, Advance,
+  Retreat e Pivot permanecem linguagem de design/Technique até existir um
+  consumidor real. `Kashmir.Combat.OffensiveMovementGrammar` passa 10/10 e a
+  regressão Combat completa passa 162/162.
+- **UE2.3.15 — Combat Motion Grammar Foundation:** `DECIDED / STRUCTURAL
+  AUTOMATION VALIDATED`. UE2.3.14 é preservada e reclassificada como a
+  subgramática de Voluntary Combat Translation / Technique Movement. O espaço
+  de capacidades agora distingue locomotion, voluntary translation, rotation,
+  attack motion, defense, evasion, counter, casting, ranged, aerial, grapple,
+  forced motion, reaction e transformation/summoned motion sem criar uma
+  mega-enum sem consumidor. Contratos existentes continuam autoridades:
+  `MovementIntent` para apresentação corporal; `MovementSpec`/MovementDelivery
+  para translation voluntária; Technique/CombatAction para attack semantics e
+  delivery; ActionRuntime para timing/cancel/resources e substrate de
+  transitions; Defense Pipeline e resolvers para defesa; HitEvidence/Stagger/
+  PhysicalReaction para reação. Rotation, Evasion authoring, Casting lifecycle,
+  combat-air, Grapple lifecycle, ForcedMovementResponse e Technique Transition
+  Grammar permanecem `DESIGN ONLY / PENDING`. Nenhuma nova mecânica física,
+  Technique, animação ou input foi adicionada. `CombatMotionGrammar` passa
+  12/12; Combat 174/174; Foundation 6/6.
 
 Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova
