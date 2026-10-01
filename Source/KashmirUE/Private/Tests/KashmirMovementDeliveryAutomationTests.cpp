@@ -22,6 +22,7 @@ namespace
         TEXT("/Game/KashmirAct/Combat/DirectionalSword/")
         TEXT("DA_KashmirDirectionalSword_Baseline.")
         TEXT("DA_KashmirDirectionalSword_Baseline");
+    const FName StepForwardTechniqueId(TEXT("Technique.Sword.Test.StepForward"));
 
     UKashmirWeaponCombatStyle* LoadMovementDeliveryStyle()
     {
@@ -105,6 +106,10 @@ bool FKashmirMovementDeliveryBaselineTest::RunTest(const FString& Parameters)
     if (Style == nullptr) return false;
     for (const FKashmirCombatTechniqueDefinition& Technique : Style->Techniques)
     {
+        if (Technique.TechniqueId == StepForwardTechniqueId)
+        {
+            continue;
+        }
         TestEqual(*FString::Printf(TEXT("%s keeps Delivery=None"),
             *Technique.TechniqueId.ToString()),
             Technique.MovementSpec.Delivery, EKashmirMovementDelivery::None);

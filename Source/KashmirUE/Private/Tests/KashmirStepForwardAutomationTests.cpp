@@ -8,6 +8,8 @@
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 
 namespace
@@ -44,18 +46,16 @@ namespace
             });
     }
 
-    FKashmirCombatTechniqueDefinition MakeStepForwardDefinition(
-        const FKashmirCombatTechniqueDefinition& Baseline)
+    const FKashmirCombatTechniqueDefinition* FindPersistentStepForward(
+        const UKashmirWeaponCombatStyle* Style)
     {
-        FKashmirCombatTechniqueDefinition Result = Baseline;
-        Result.TechniqueId = StepForwardTechniqueId;
-        Result.MovementIntent = EKashmirMovementIntent::FullBody;
-        Result.MovementSpec.Delivery =
-            EKashmirMovementDelivery::ControlledTranslation;
-        Result.MovementSpec.Distance = 80.0f;
-        Result.MovementSpec.Duration = 0.25f;
-        Result.MovementSpec.Direction = EKashmirMovementDirection::Forward;
-        return Result;
+        return Style != nullptr
+            ? Style->Techniques.FindByPredicate(
+                [](const FKashmirCombatTechniqueDefinition& Candidate)
+                {
+                    return Candidate.TechniqueId == StepForwardTechniqueId;
+                })
+            : nullptr;
     }
 
     struct FStepForwardTestFixture
@@ -75,8 +75,11 @@ namespace
             UKashmirDirectionalSwordProfile* SourceProfile = LoadStepForwardProfile();
             const FKashmirCombatTechniqueDefinition* SourceBaseline =
                 FindStepForwardBaseline(SourceStyle);
+            const FKashmirCombatTechniqueDefinition* SourceStepForward =
+                FindPersistentStepForward(SourceStyle);
             if (SourceStyle == nullptr || SourceProfile == nullptr ||
-                SourceBaseline == nullptr || SourceStyle->SlotBindings.IsEmpty())
+                SourceBaseline == nullptr || SourceStepForward == nullptr ||
+                SourceStyle->SlotBindings.IsEmpty())
             {
                 return false;
             }
@@ -86,7 +89,6 @@ namespace
                 SourceStyle, GetTransientPackage());
             Profile = DuplicateObject<UKashmirDirectionalSwordProfile>(
                 SourceProfile, GetTransientPackage());
-            Style->Techniques.Add(MakeStepForwardDefinition(Baseline));
             RequestSlot = Style->SlotBindings[0].Slot;
             Style->SlotBindings[0].TechniqueId = StepForwardTechniqueId;
 
@@ -154,61 +156,91 @@ namespace
         EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 
-KASHMIR_STEP_FORWARD_TEST(FStepForwardDefinitionTest, "StepForwardDefinition")
-bool FStepForwardDefinitionTest::RunTest(const FString& Parameters)
+KASHMIR_STEP_FORWARD_TEST(FPersistentStepForwardExistsTest, "PersistentStepForwardExists")
+bool FPersistentStepForwardExistsTest::RunTest(const FString& Parameters)
 {
     const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
-    const FKashmirCombatTechniqueDefinition* Baseline = FindStepForwardBaseline(Style);
-    TestNotNull(TEXT("Baseline Technique exists"), Baseline);
-    if (Baseline == nullptr) return false;
-    const FKashmirCombatTechniqueDefinition Step = MakeStepForwardDefinition(*Baseline);
+    const FKashmirCombatTechniqueDefinition* Step = FindPersistentStepForward(Style);
+    TestNotNull(TEXT("Persistent StepForward exists in the CombatStyle"), Step);
+    if (Step == nullptr) return false;
     FString Reason;
-    TestTrue(TEXT("Transient StepForward definition is valid"), Step.IsValid(Reason));
-    TestEqual(TEXT("StepForward owns its semantic Technique id"),
-        Step.TechniqueId, StepForwardTechniqueId);
-    TestEqual(TEXT("StepForward reuses baseline Action"), Step.ActionId, Baseline->ActionId);
-    TestEqual(TEXT("StepForward reuses baseline Base Motion"), Step.Montage, Baseline->Montage);
+    TestTrue(TEXT("Persistent StepForward definition is valid"), Step->IsValid(Reason));
     return true;
 }
 
-KASHMIR_STEP_FORWARD_TEST(FStepForwardDeliveryModeTest, "UsesControlledTranslation")
-bool FStepForwardDeliveryModeTest::RunTest(const FString& Parameters)
+KASHMIR_STEP_FORWARD_TEST(FCorrectTechniqueIdTest, "CorrectTechniqueId")
+bool FCorrectTechniqueIdTest::RunTest(const FString& Parameters)
 {
-    const FKashmirCombatTechniqueDefinition* Baseline =
-        FindStepForwardBaseline(LoadStepForwardStyle());
-    if (Baseline == nullptr) return false;
-    const FKashmirCombatTechniqueDefinition Step = MakeStepForwardDefinition(*Baseline);
+    const FKashmirCombatTechniqueDefinition* Step =
+        FindPersistentStepForward(LoadStepForwardStyle());
+    TestNotNull(TEXT("Persistent StepForward exists"), Step);
+    if (Step == nullptr) return false;
+    TestEqual(TEXT("Persistent TechniqueId is stable"),
+        Step->TechniqueId, StepForwardTechniqueId);
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FCorrectBaseMotionTest, "CorrectBaseMotion")
+bool FCorrectBaseMotionTest::RunTest(const FString& Parameters)
+{
+    const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
+    const FKashmirCombatTechniqueDefinition* Baseline = FindStepForwardBaseline(Style);
+    const FKashmirCombatTechniqueDefinition* Step = FindPersistentStepForward(Style);
+    TestNotNull(TEXT("Baseline exists"), Baseline);
+    TestNotNull(TEXT("StepForward exists"), Step);
+    if (Baseline == nullptr || Step == nullptr) return false;
+    TestEqual(TEXT("StepForward reuses AM_KashmirSword_HorizontalA"),
+        Step->Montage, Baseline->Montage);
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FCorrectActionIdTest, "CorrectActionId")
+bool FCorrectActionIdTest::RunTest(const FString& Parameters)
+{
+    const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
+    const FKashmirCombatTechniqueDefinition* Baseline = FindStepForwardBaseline(Style);
+    const FKashmirCombatTechniqueDefinition* Step = FindPersistentStepForward(Style);
+    if (Baseline == nullptr || Step == nullptr) return false;
+    TestEqual(TEXT("StepForward preserves Sword.Direct.Right"),
+        Step->ActionId, Baseline->ActionId);
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FFullBodyIntentTest, "FullBodyIntent")
+bool FFullBodyIntentTest::RunTest(const FString& Parameters)
+{
+    const FKashmirCombatTechniqueDefinition* Step =
+        FindPersistentStepForward(LoadStepForwardStyle());
+    if (Step == nullptr) return false;
+    TestEqual(TEXT("StepForward selects FullBody presentation"),
+        Step->MovementIntent, EKashmirMovementIntent::FullBody);
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FControlledTranslationTest, "ControlledTranslation80cm025")
+bool FControlledTranslationTest::RunTest(const FString& Parameters)
+{
+    const FKashmirCombatTechniqueDefinition* Step =
+        FindPersistentStepForward(LoadStepForwardStyle());
+    if (Step == nullptr) return false;
+    const FKashmirTechniqueMovementSpec& Spec = Step->MovementSpec;
     TestEqual(TEXT("StepForward uses generic ControlledTranslation"),
-        Step.MovementSpec.Delivery, EKashmirMovementDelivery::ControlledTranslation);
+        Spec.Delivery, EKashmirMovementDelivery::ControlledTranslation);
+    TestEqual(TEXT("StepForward distance is 80 cm"), Spec.Distance, 80.0f);
+    TestEqual(TEXT("StepForward duration is 0.25 s"), Spec.Duration, 0.25f);
     TestEqual(TEXT("MovementDelivery enum remains exactly two modes"),
         StaticEnum<EKashmirMovementDelivery>()->NumEnums() - 1, 2);
     return true;
 }
 
-KASHMIR_STEP_FORWARD_TEST(FStepForwardFullBodyTest, "UsesFullBodyIntent")
-bool FStepForwardFullBodyTest::RunTest(const FString& Parameters)
+KASHMIR_STEP_FORWARD_TEST(FForwardDirectionTest, "ForwardDirection")
+bool FForwardDirectionTest::RunTest(const FString& Parameters)
 {
-    const FKashmirCombatTechniqueDefinition* Baseline =
-        FindStepForwardBaseline(LoadStepForwardStyle());
-    if (Baseline == nullptr) return false;
-    TestEqual(TEXT("StepForward selects FullBody presentation"),
-        MakeStepForwardDefinition(*Baseline).MovementIntent,
-        EKashmirMovementIntent::FullBody);
-    return true;
-}
-
-KASHMIR_STEP_FORWARD_TEST(FStepForwardDistanceTest, "DistanceAndDuration")
-bool FStepForwardDistanceTest::RunTest(const FString& Parameters)
-{
-    const FKashmirCombatTechniqueDefinition* Baseline =
-        FindStepForwardBaseline(LoadStepForwardStyle());
-    if (Baseline == nullptr) return false;
-    const FKashmirTechniqueMovementSpec Spec =
-        MakeStepForwardDefinition(*Baseline).MovementSpec;
-    TestEqual(TEXT("StepForward distance is 80 cm"), Spec.Distance, 80.0f);
-    TestEqual(TEXT("StepForward duration is 0.25 s"), Spec.Duration, 0.25f);
+    const FKashmirCombatTechniqueDefinition* Step =
+        FindPersistentStepForward(LoadStepForwardStyle());
+    if (Step == nullptr) return false;
     TestEqual(TEXT("StepForward direction is Forward"),
-        Spec.Direction, EKashmirMovementDirection::Forward);
+        Step->MovementSpec.Direction, EKashmirMovementDirection::Forward);
     return true;
 }
 
@@ -234,15 +266,15 @@ bool FStepForwardRootMotionTest::RunTest(const FString& Parameters)
 KASHMIR_STEP_FORWARD_TEST(FStepForwardDamageTest, "DamagePreserved")
 bool FStepForwardDamageTest::RunTest(const FString& Parameters)
 {
-    const FKashmirCombatTechniqueDefinition* Baseline =
-        FindStepForwardBaseline(LoadStepForwardStyle());
-    if (Baseline == nullptr) return false;
-    const FKashmirCombatTechniqueDefinition Step = MakeStepForwardDefinition(*Baseline);
-    TestEqual(TEXT("Base damage is preserved"), Step.BaseDamage, Baseline->BaseDamage);
+    const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
+    const FKashmirCombatTechniqueDefinition* Baseline = FindStepForwardBaseline(Style);
+    const FKashmirCombatTechniqueDefinition* Step = FindPersistentStepForward(Style);
+    if (Baseline == nullptr || Step == nullptr) return false;
+    TestEqual(TEXT("Base damage is preserved"), Step->BaseDamage, Baseline->BaseDamage);
     TestEqual(TEXT("Guard damage is preserved"),
-        Step.BaseGuardDamage, Baseline->BaseGuardDamage);
+        Step->BaseGuardDamage, Baseline->BaseGuardDamage);
     TestTrue(TEXT("Combat effects are preserved"),
-        Step.CombatDefinition.Effects == Baseline->CombatDefinition.Effects);
+        Step->CombatDefinition.Effects == Baseline->CombatDefinition.Effects);
     return true;
 }
 
@@ -265,16 +297,16 @@ bool FStepForwardTraceTest::RunTest(const FString& Parameters)
 KASHMIR_STEP_FORWARD_TEST(FStepForwardEvidenceTest, "HitEvidencePreserved")
 bool FStepForwardEvidenceTest::RunTest(const FString& Parameters)
 {
-    const FKashmirCombatTechniqueDefinition* Baseline =
-        FindStepForwardBaseline(LoadStepForwardStyle());
-    if (Baseline == nullptr) return false;
-    const FKashmirCombatTechniqueDefinition Step = MakeStepForwardDefinition(*Baseline);
+    const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
+    const FKashmirCombatTechniqueDefinition* Baseline = FindStepForwardBaseline(Style);
+    const FKashmirCombatTechniqueDefinition* Step = FindPersistentStepForward(Style);
+    if (Baseline == nullptr || Step == nullptr) return false;
     TestEqual(TEXT("Attack direction evidence is preserved"),
-        Step.AttackDirection, Baseline->AttackDirection);
+        Step->AttackDirection, Baseline->AttackDirection);
     TestEqual(TEXT("Attack shape evidence is preserved"),
-        Step.AttackShape, Baseline->AttackShape);
+        Step->AttackShape, Baseline->AttackShape);
     TestEqual(TEXT("Contact profile is preserved"),
-        Step.ContactProfileId, Baseline->ContactProfileId);
+        Step->ContactProfileId, Baseline->ContactProfileId);
     return true;
 }
 
@@ -332,10 +364,10 @@ bool FStepForwardBlockedTest::RunTest(const FString& Parameters)
 KASHMIR_STEP_FORWARD_TEST(FStepForwardOrthogonalTest, "MovementIntentAndDeliveryRemainSeparate")
 bool FStepForwardOrthogonalTest::RunTest(const FString& Parameters)
 {
-    const FKashmirCombatTechniqueDefinition* Baseline =
-        FindStepForwardBaseline(LoadStepForwardStyle());
-    if (Baseline == nullptr) return false;
-    FKashmirCombatTechniqueDefinition Step = MakeStepForwardDefinition(*Baseline);
+    const FKashmirCombatTechniqueDefinition* Persistent =
+        FindPersistentStepForward(LoadStepForwardStyle());
+    if (Persistent == nullptr) return false;
+    FKashmirCombatTechniqueDefinition Step = *Persistent;
     TestEqual(TEXT("StepForward FullBody does not replace delivery semantics"),
         Step.MovementSpec.Delivery, EKashmirMovementDelivery::ControlledTranslation);
     Step.MovementIntent = EKashmirMovementIntent::Stationary;
@@ -347,22 +379,26 @@ bool FStepForwardOrthogonalTest::RunTest(const FString& Parameters)
     return true;
 }
 
-KASHMIR_STEP_FORWARD_TEST(FStepForwardBaselineTest, "ExistingTechniquesUnchanged")
-bool FStepForwardBaselineTest::RunTest(const FString& Parameters)
+KASHMIR_STEP_FORWARD_TEST(FSlotsOneToFourUnchangedTest, "Slots1To4Unchanged")
+bool FSlotsOneToFourUnchangedTest::RunTest(const FString& Parameters)
 {
     const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
     TestNotNull(TEXT("Published baseline style loads"), Style);
     if (Style == nullptr) return false;
     TestEqual(TEXT("Published baseline retains four bindings"),
         Style->SlotBindings.Num(), 4);
-    TestNull(TEXT("StepForward is not persisted in the Data Asset"),
-        Style->Techniques.FindByPredicate(
-            [](const FKashmirCombatTechniqueDefinition& Candidate)
-            {
-                return Candidate.TechniqueId == StepForwardTechniqueId;
-            }));
-    for (const FKashmirTechniqueSlotBinding& Binding : Style->SlotBindings)
+    const TArray<FName> ExpectedIds = {
+        FName(TEXT("Technique.Sword.Horizontal.LeftToRight")),
+        FName(TEXT("Technique.Sword.Diagonal.Rising.RightToLeft")),
+        FName(TEXT("Technique.Sword.Rising.LowToHigh")),
+        FName(TEXT("Technique.Sword.Overhead.HighToLow"))};
+    for (int32 Index = 0; Index < Style->SlotBindings.Num(); ++Index)
     {
+        const FKashmirTechniqueSlotBinding& Binding = Style->SlotBindings[Index];
+        TestEqual(TEXT("Slot remains in ordinal order"),
+            static_cast<int32>(Binding.Slot), Index + 1);
+        TestEqual(TEXT("Slot binding Technique remains unchanged"),
+            Binding.TechniqueId, ExpectedIds[Index]);
         const FKashmirCombatTechniqueDefinition* Technique =
             Style->Techniques.FindByPredicate(
                 [&Binding](const FKashmirCombatTechniqueDefinition& Candidate)
@@ -376,6 +412,75 @@ bool FStepForwardBaselineTest::RunTest(const FString& Parameters)
                 Technique->MovementSpec.Delivery, EKashmirMovementDelivery::None);
         }
     }
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FTechniqueIsUnboundTest, "TechniqueIsUnbound")
+bool FTechniqueIsUnboundTest::RunTest(const FString& Parameters)
+{
+    const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
+    if (Style == nullptr) return false;
+    TestNotNull(TEXT("Persistent StepForward exists"), FindPersistentStepForward(Style));
+    TestFalse(TEXT("Persistent StepForward has no Slot binding"),
+        Style->SlotBindings.ContainsByPredicate(
+            [](const FKashmirTechniqueSlotBinding& Binding)
+            {
+                return Binding.TechniqueId == StepForwardTechniqueId;
+            }));
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FSlotFiveStillUnboundTest, "Slot5StillUnbound")
+bool FSlotFiveStillUnboundTest::RunTest(const FString& Parameters)
+{
+    const UKashmirWeaponCombatStyle* Style = LoadStepForwardStyle();
+    if (Style == nullptr) return false;
+    TestFalse(TEXT("Slot5 remains absent from persistent bindings"),
+        Style->SlotBindings.ContainsByPredicate(
+            [](const FKashmirTechniqueSlotBinding& Binding)
+            {
+                return Binding.Slot == EKashmirTechniqueSlot::TechniqueSlot5;
+            }));
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FNoTechniqueSpecificRuntimeBranchingTest,
+    "NoTechniqueSpecificRuntimeBranching")
+bool FNoTechniqueSpecificRuntimeBranchingTest::RunTest(const FString& Parameters)
+{
+    const TArray<FString> RuntimeFiles = {
+        FPaths::Combine(FPaths::ProjectDir(),
+            TEXT("Source/KashmirUE/Private/Combat/KashmirCombatTechnique.cpp")),
+        FPaths::Combine(FPaths::ProjectDir(),
+            TEXT("Source/KashmirUE/Private/Combat/KashmirDirectionalSwordComponent.cpp")),
+        FPaths::Combine(FPaths::ProjectDir(),
+            TEXT("Source/KashmirUE/Private/Combat/KashmirMovementDeliveryComponent.cpp"))};
+    for (const FString& File : RuntimeFiles)
+    {
+        FString Source;
+        TestTrue(*FString::Printf(TEXT("Runtime source loads: %s"), *File),
+            FFileHelper::LoadFileToString(Source, *File));
+        TestFalse(*FString::Printf(TEXT("No StepForward branch in %s"), *File),
+            Source.Contains(StepForwardTechniqueId.ToString()));
+    }
+    return true;
+}
+
+KASHMIR_STEP_FORWARD_TEST(FResolvesThroughNormalPipelineTest,
+    "ResolvesThroughNormalPipeline")
+bool FResolvesThroughNormalPipelineTest::RunTest(const FString& Parameters)
+{
+    FStepForwardTestFixture Fixture;
+    TestTrue(TEXT("Persistent StepForward fixture initializes"), Fixture.Initialize());
+    FString Reason;
+    TestTrue(TEXT("Generic Technique request resolves and starts"), Fixture.Start(Reason));
+    TestEqual(TEXT("Action plan retains persistent Technique identity"),
+        Fixture.Sword->GetActivePlan().TechniqueId, StepForwardTechniqueId);
+    TestEqual(TEXT("Normal pipeline preserves baseline ActionId"),
+        Fixture.Sword->GetActivePlan().RuntimeDefinition.ActionId,
+        Fixture.Baseline.ActionId);
+    TestTrue(TEXT("Normal pipeline starts MovementDelivery"),
+        Fixture.Movement->IsDeliveryActive());
     return true;
 }
 
