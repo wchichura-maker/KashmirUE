@@ -750,3 +750,54 @@
 - Não foram implementados RotationDelivery, Evasion, Casting, Ranged gameplay,
   Aerial combat, Grapple lifecycle, ForcedMovementResponse, Transition Grammar,
   novas Techniques, animations ou inputs.
+
+## UE-0031 — Technique Transition Grammar é uma camada acima do ActionRuntime
+
+- **Status da decisão:** **DECIDED** em 2026-10-01.
+- **Status técnico:** v0.1 **IMPLEMENTED / AUTOMATION VALIDATED / UNCOMMITTED**;
+  autoria persistente no Style baseline, input buffering e condições por
+  resultado de combate permanecem **PENDING**.
+- Technique transition, Action transition e cancelamento são operações
+  semanticamente distintas. Uma Technique transition aceita emite
+  `Transitioned(A)` seguido por `Started(B)`; cancelamento continua emitindo
+  `Interrupted(A)` e continua regido por `bCancellable`/`CancelWindows`.
+- `TechniqueId != ActionId`. Duas Techniques podem compartilhar o mesmo
+  `ActionId`, Base Motion ou montage e ainda exigir MovementSpec, MovementIntent
+  ou apresentação procedural diferentes. O `ActionRuntime` não recebe
+  conhecimento de `TechniqueId`.
+- `UKashmirWeaponCombatStyle` é owner de `FKashmirTechniqueTransitionRule` e da
+  elegibilidade `FromTechniqueId + ToTechniqueId + Elapsed + ContextTags`.
+  Regras usam `MinElapsed`, `MaxElapsed`, tags required/blocked e prioridade,
+  com ordenação determinística e destinos deduplicados.
+- `ActionRuntime::Elapsed` é o relógio autoritativo. A janela não usa tempo de
+  montage, notify, normalized animation time ou Tick visual.
+- `UKashmirDirectionalSwordComponent` é o orquestrador transacional. Ele resolve
+  B completamente, valida MovementDelivery/presentation e executa preflight de
+  action/resources antes de permitir que o runtime faça a troca inferior.
+- O `ActionRuntime` continua uma primitive genérica. A extensão
+  `CanTransitionTo(Request, Rule, Context)` permite preflight sem mutação, e o
+  overload correspondente de `TransitionTo` continua responsável por pagamento
+  atômico e eventos. Nenhuma branch por Sword Technique existe no runtime.
+- Após commit bem-sucedido do runtime, o orquestrador fecha o WeaponTrace A e
+  limpa seu hit-set, encerra o MovementDelivery A como `Transitioned`, encerra a
+  presentation A, substitui `ActivePlan` por B e inicia delivery, presentation e
+  a futura janela Active de B. O commit inferior ocorre primeiro para que falha
+  de recurso não destrua A.
+- Sword presentation passa a distinguir também `TechniqueId`, evitando que duas
+  Techniques com o mesmo `ActionId` sejam sincronizadas como a mesma identidade.
+- Rules vazias preservam exatamente a rota anterior de cancel/reject. Não existe
+  input buffer v0.1: requests antes/depois da janela continuam no comportamento
+  anterior. OnHit, OnMiss, OnBlock, OnParry e OnGuardBreak não participam da
+  elegibilidade v0.1.
+- A primeira prova usa uma cópia transitória do Style baseline, sem salvar o
+  Data Asset. Slot1 `Technique.Sword.Horizontal.LeftToRight` transiciona para
+  Slot2 `Technique.Sword.Diagonal.Rising.RightToLeft` na janela inclusiva
+  `[0.320, 0.470] s`, iniciada no fim de Active (`0.180 + 0.140`) e cobrindo os
+  primeiros `0.150 s` da Recovery real (`0.280 s`).
+- Evidência: full `KashmirUEEditor` build; TechniqueTransitionGrammar 9/9;
+  CombatMotionGrammar 12/12; OffensiveMovementGrammar 10/10; StepForward 19/19;
+  MovementDeliveryRuntime 19/19; MovementDelivery 5/5; MovementIntent 6/6;
+  PlayableGrammar 13/13; DirectionalSword 19/19; Combat 183/183; Foundation 6/6.
+- Futuro: input buffering/early queue, combat-outcome conditions, graph editing,
+  aerial/cast/counter transitions, Ultimate phase orchestration e transitions
+  geradas/desbloqueadas por progression.

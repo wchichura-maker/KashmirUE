@@ -92,6 +92,18 @@ public:
         return bTraceWindowActive;
     }
 
+    UFUNCTION(BlueprintPure, Category="Combat|Weapon Trace|Debug", meta=(DevelopmentOnly))
+    int32 GetHitActorCountForDebug() const
+    {
+        return HitActorsThisWindow.Num();
+    }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Weapon Trace|Debug", meta=(DevelopmentOnly))
+    int32 GetTraceWindowGenerationForDebug() const
+    {
+        return TraceWindowGeneration;
+    }
+
 protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Weapon Trace")
@@ -123,6 +135,8 @@ private:
 
     bool bHasPreviousFrame = false;
     bool bTraceWindowActive = false;
+
+    int32 TraceWindowGeneration = 0;
 
     TSet<TWeakObjectPtr<AActor>> HitActorsThisWindow;
 };

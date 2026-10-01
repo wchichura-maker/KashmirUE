@@ -155,6 +155,15 @@ void UKashmirMovementDeliveryComponent::CancelDelivery()
 }
 
 
+void UKashmirMovementDeliveryComponent::TransitionDelivery()
+{
+    if (bDeliveryActive)
+    {
+        FinishDelivery(EKashmirMovementDeliveryCompletionReason::Transitioned);
+    }
+}
+
+
 void UKashmirMovementDeliveryComponent::FinishDelivery(
     const EKashmirMovementDeliveryCompletionReason Reason)
 {
@@ -162,6 +171,7 @@ void UKashmirMovementDeliveryComponent::FinishDelivery(
     RequestedVelocity = FVector::ZeroVector;
     LastRequestedDelta = FVector::ZeroVector;
     CompletionReason = Reason;
+    LastCompletionReason = Reason;
 }
 
 

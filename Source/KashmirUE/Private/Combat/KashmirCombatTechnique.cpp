@@ -1,6 +1,39 @@
 #include "Combat/KashmirCombatTechnique.h"
 
 
+namespace
+{
+    bool AreTechniqueTransitionRulesEquivalent(
+        const FKashmirTechniqueTransitionRule& A,
+        const FKashmirTechniqueTransitionRule& B)
+    {
+        return A.FromTechniqueId == B.FromTechniqueId &&
+            A.ToTechniqueId == B.ToTechniqueId &&
+            FMath::IsNearlyEqual(A.MinElapsed, B.MinElapsed) &&
+            FMath::IsNearlyEqual(A.MaxElapsed, B.MaxElapsed) &&
+            A.Priority == B.Priority &&
+            A.RequiredTags == B.RequiredTags &&
+            A.BlockedTags == B.BlockedTags;
+    }
+
+    bool IsTechniqueTransitionRuleEligible(
+        const FKashmirTechniqueTransitionRule& Rule,
+        const FName FromTechniqueId,
+        const float Elapsed,
+        const FGameplayTagContainer& ContextTags)
+    {
+        FString Reason;
+        return Rule.IsValid(Reason) &&
+            Rule.FromTechniqueId == FromTechniqueId &&
+            Elapsed + KINDA_SMALL_NUMBER >= Rule.MinElapsed &&
+            (Rule.MaxElapsed < 0.0f ||
+                Elapsed - KINDA_SMALL_NUMBER <= Rule.MaxElapsed) &&
+            ContextTags.HasAll(Rule.RequiredTags) &&
+            !ContextTags.HasAny(Rule.BlockedTags);
+    }
+}
+
+
 bool FKashmirTechniqueMovementSpec::IsValid(FString& OutReason) const
 {
     OutReason.Reset();
@@ -62,6 +95,35 @@ bool FKashmirTechniqueRequest::IsValid(FString& OutReason) const
         !FMath::IsFinite(Intensity) || Intensity < 0.0f)
     {
         OutReason = TEXT("technique request contains invalid targeting evidence");
+        return false;
+    }
+    return true;
+}
+
+
+bool FKashmirTechniqueTransitionRule::IsValid(FString& OutReason) const
+{
+    OutReason.Reset();
+    if (FromTechniqueId.IsNone() || ToTechniqueId.IsNone())
+    {
+        OutReason = TEXT("technique transition requires source and destination ids");
+        return false;
+    }
+    if (FromTechniqueId == ToTechniqueId)
+    {
+        OutReason = TEXT("technique self-transition is not supported in v0.1");
+        return false;
+    }
+    if (!FMath::IsFinite(MinElapsed) || !FMath::IsFinite(MaxElapsed) ||
+        MinElapsed < 0.0f ||
+        (MaxElapsed >= 0.0f && MaxElapsed < MinElapsed))
+    {
+        OutReason = TEXT("technique transition window is invalid");
+        return false;
+    }
+    if (RequiredTags.HasAny(BlockedTags))
+    {
+        OutReason = TEXT("technique transition requires and blocks the same tag");
         return false;
     }
     return true;
@@ -208,6 +270,43 @@ bool UKashmirWeaponCombatStyle::ValidateStyle(FString& OutReason) const
         }
         BoundSlots.Add(Binding.Slot);
     }
+
+    for (int32 RuleIndex = 0; RuleIndex < TransitionRules.Num(); ++RuleIndex)
+    {
+        const FKashmirTechniqueTransitionRule& Rule = TransitionRules[RuleIndex];
+        FString RuleReason;
+        if (!Rule.IsValid(RuleReason))
+        {
+            OutReason = FString::Printf(
+                TEXT("invalid technique transition rule %d: %s"),
+                RuleIndex,
+                *RuleReason);
+            return false;
+        }
+        if (!TechniqueIds.Contains(Rule.FromTechniqueId))
+        {
+            OutReason = FString::Printf(
+                TEXT("technique transition references missing source '%s'"),
+                *Rule.FromTechniqueId.ToString());
+            return false;
+        }
+        if (!TechniqueIds.Contains(Rule.ToTechniqueId))
+        {
+            OutReason = FString::Printf(
+                TEXT("technique transition references missing destination '%s'"),
+                *Rule.ToTechniqueId.ToString());
+            return false;
+        }
+        for (int32 PreviousIndex = 0; PreviousIndex < RuleIndex; ++PreviousIndex)
+        {
+            if (AreTechniqueTransitionRulesEquivalent(
+                    Rule, TransitionRules[PreviousIndex]))
+            {
+                OutReason = TEXT("weapon combat style has a duplicate technique transition rule");
+                return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -258,5 +357,99 @@ bool UKashmirWeaponCombatStyle::ResolveTechnique(
         return false;
     }
     OutPlan.bResolved = true;
+    return true;
+}
+
+
+TArray<FName> UKashmirWeaponCombatStyle::GetTechniqueTransitionOptions(
+    const FName FromTechniqueId,
+    const float Elapsed,
+    const FGameplayTagContainer& ContextTags) const
+{
+    struct FCandidate
+    {
+        FName TechniqueId;
+        int32 Priority = 0;
+    };
+
+    if (!FMath::IsFinite(Elapsed) || Elapsed < 0.0f)
+    {
+        return {};
+    }
+
+    TMap<FName, int32> BestPriorityByDestination;
+    for (const FKashmirTechniqueTransitionRule& Rule : TransitionRules)
+    {
+        if (IsTechniqueTransitionRuleEligible(
+                Rule, FromTechniqueId, Elapsed, ContextTags))
+        {
+            int32& BestPriority = BestPriorityByDestination.FindOrAdd(
+                Rule.ToTechniqueId, MIN_int32);
+            BestPriority = FMath::Max(BestPriority, Rule.Priority);
+        }
+    }
+
+    TArray<FCandidate> Candidates;
+    for (const TPair<FName, int32>& Pair : BestPriorityByDestination)
+    {
+        Candidates.Add({Pair.Key, Pair.Value});
+    }
+    Candidates.Sort([](const FCandidate& A, const FCandidate& B)
+    {
+        return A.Priority != B.Priority
+            ? A.Priority > B.Priority
+            : A.TechniqueId.LexicalLess(B.TechniqueId);
+    });
+
+    TArray<FName> Result;
+    Result.Reserve(Candidates.Num());
+    for (const FCandidate& Candidate : Candidates)
+    {
+        Result.Add(Candidate.TechniqueId);
+    }
+    return Result;
+}
+
+
+bool UKashmirWeaponCombatStyle::ResolveTechniqueTransition(
+    const FName FromTechniqueId,
+    const FName ToTechniqueId,
+    const float Elapsed,
+    const FGameplayTagContainer& ContextTags,
+    FKashmirTechniqueTransitionRule& OutRule,
+    FString& OutReason) const
+{
+    OutRule = {};
+    OutReason.Reset();
+    if (!ValidateStyle(OutReason))
+    {
+        return false;
+    }
+    if (!FMath::IsFinite(Elapsed) || Elapsed < 0.0f)
+    {
+        OutReason = TEXT("technique transition elapsed time is invalid");
+        return false;
+    }
+
+    const FKashmirTechniqueTransitionRule* BestRule = nullptr;
+    for (const FKashmirTechniqueTransitionRule& Rule : TransitionRules)
+    {
+        if (Rule.ToTechniqueId != ToTechniqueId ||
+            !IsTechniqueTransitionRuleEligible(
+                Rule, FromTechniqueId, Elapsed, ContextTags))
+        {
+            continue;
+        }
+        if (BestRule == nullptr || Rule.Priority > BestRule->Priority)
+        {
+            BestRule = &Rule;
+        }
+    }
+    if (BestRule == nullptr)
+    {
+        OutReason = TEXT("technique transition is not available");
+        return false;
+    }
+    OutRule = *BestRule;
     return true;
 }

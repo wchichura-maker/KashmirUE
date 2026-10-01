@@ -94,6 +94,10 @@ struct KASHMIRUE_API FKashmirSwordActionPlan
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FName TechniqueId;
 
+    /** Style identity keeps Technique transitions inside the grammar that authored them. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FName StyleId;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     TSoftObjectPtr<UAnimMontage> Montage;
 

@@ -161,6 +161,9 @@ public:
     UFUNCTION(BlueprintPure, Category="Combat|Directional Sword")
     FKashmirActionRuntimeState GetRuntimeState() const;
 
+    /** Consumes authoritative runtime events for orchestration/tests. */
+    TArray<FKashmirActionEvent> DrainRuntimeEvents();
+
     UFUNCTION(BlueprintPure, Category="Combat|Directional Sword")
     FKashmirSwordActionPlan GetActivePlan() const
     {
@@ -189,6 +192,16 @@ private:
     bool StartResolvedPlan(
         const FKashmirSwordActionPlan& Plan,
         FString& OutReason);
+    bool ValidateResolvedPlan(
+        const FKashmirSwordActionPlan& Plan,
+        FString& OutReason) const;
+    bool TryTransitionTechnique(
+        const FKashmirSwordActionPlan& Plan,
+        const FKashmirTechniqueTransitionRule& TechniqueRule,
+        const FGameplayTagContainer& ContextTags,
+        FString& OutReason);
+    void ResetTraceForTransition(
+        const FKashmirActionRuntimeState& DestinationState);
     void ApplyPresentation(const FKashmirActionRuntimeState& RuntimeState);
     void SynchronizeTraceWindow(
         const FKashmirActionRuntimeState& PreviousState,

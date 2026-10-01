@@ -85,6 +85,16 @@ public:
     bool Advance(float DeltaSeconds, FString& OutReason);
     bool TryCancelCurrent(FString& OutReason);
     bool TryCancel(const FKashmirActionRequest& NextRequest, FString& OutReason);
+    bool CanTransitionTo(
+        const FKashmirActionRequest& NextRequest,
+        const FKashmirTransitionRule& Rule,
+        const FGameplayTagContainer& ContextTags,
+        FString& OutReason) const;
+    bool TransitionTo(
+        const FKashmirActionRequest& NextRequest,
+        const FKashmirTransitionRule& Rule,
+        const FGameplayTagContainer& ContextTags,
+        FString& OutReason);
     bool TransitionTo(const FKashmirActionRequest& NextRequest, const FGameplayTagContainer& ContextTags, FString& OutReason);
     TArray<FName> GetTransitionOptions(const FGameplayTagContainer& ContextTags) const;
     bool GetActionTotalDuration(FName ActionId, float& OutDuration, FString& OutReason) const;

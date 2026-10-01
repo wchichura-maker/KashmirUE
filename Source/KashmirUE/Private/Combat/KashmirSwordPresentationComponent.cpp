@@ -80,6 +80,7 @@ bool FKashmirSwordPresentationSyncResolver::Resolve(
     OutResult.Command =
         !PresentationState.bActive ||
         PresentationState.ActionId != RuntimeState.ActionId ||
+        PresentationState.TechniqueId != Plan.TechniqueId ||
         !bExpectedMontageActive
             ? EKashmirSwordPresentationCommand::Play
             : EKashmirSwordPresentationCommand::Synchronize;
@@ -209,6 +210,7 @@ bool UKashmirSwordPresentationComponent::ApplyRuntimeState(
         ActiveMontage = Montage;
         PresentationState.bActive = true;
         PresentationState.ActionId = RuntimeState.ActionId;
+        PresentationState.TechniqueId = Plan.TechniqueId;
     }
     else
     {

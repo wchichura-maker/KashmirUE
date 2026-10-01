@@ -14,6 +14,7 @@ enum class EKashmirMovementDeliveryCompletionReason : uint8
     None,
     Completed,
     Cancelled,
+    Transitioned,
     ActionEnded,
     Blocked,
     Invalid
@@ -49,6 +50,9 @@ public:
 
     void CancelDelivery();
 
+    /** Ends the current delivery because its owning Technique transitioned. */
+    void TransitionDelivery();
+
     UFUNCTION(BlueprintPure, Category="Combat|Movement Delivery|Debug", meta=(DevelopmentOnly))
     bool IsDeliveryActive() const { return bDeliveryActive; }
 
@@ -73,6 +77,10 @@ public:
     UFUNCTION(BlueprintPure, Category="Combat|Movement Delivery|Debug", meta=(DevelopmentOnly))
     EKashmirMovementDeliveryCompletionReason GetCompletionReason() const
     { return CompletionReason; }
+
+    UFUNCTION(BlueprintPure, Category="Combat|Movement Delivery|Debug", meta=(DevelopmentOnly))
+    EKashmirMovementDeliveryCompletionReason GetLastCompletionReason() const
+    { return LastCompletionReason; }
 
 #if WITH_EDITOR
     /** Creates unsaved blocking geometry for PIE validation only. */
@@ -120,5 +128,9 @@ private:
 
     UPROPERTY(Transient)
     EKashmirMovementDeliveryCompletionReason CompletionReason =
+        EKashmirMovementDeliveryCompletionReason::None;
+
+    UPROPERTY(Transient)
+    EKashmirMovementDeliveryCompletionReason LastCompletionReason =
         EKashmirMovementDeliveryCompletionReason::None;
 };

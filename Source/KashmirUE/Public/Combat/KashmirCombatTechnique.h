@@ -279,6 +279,38 @@ struct KASHMIRUE_API FKashmirTechniqueSlotBinding
 };
 
 
+/** Authorable Technique-to-Technique eligibility. ActionRuntime remains Technique-agnostic. */
+USTRUCT(BlueprintType)
+struct KASHMIRUE_API FKashmirTechniqueTransitionRule
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FName FromTechniqueId;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FName ToTechniqueId;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0.0", Units="s"))
+    float MinElapsed = 0.0f;
+
+    /** A negative value means that the window has no upper bound. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="s"))
+    float MaxElapsed = -1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 Priority = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FGameplayTagContainer RequiredTags;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FGameplayTagContainer BlockedTags;
+
+    bool IsValid(FString& OutReason) const;
+};
+
+
 USTRUCT(BlueprintType)
 struct KASHMIRUE_API FKashmirTechniqueActionPlan
 {
@@ -320,10 +352,27 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FKashmirTechniqueSlotBinding> SlotBindings;
 
+    /** Optional Technique grammar. Empty preserves the existing cancel/reject path. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FKashmirTechniqueTransitionRule> TransitionRules;
+
     bool ValidateStyle(FString& OutReason) const;
 
     bool ResolveTechnique(
         const FKashmirTechniqueRequest& Request,
         FKashmirTechniqueActionPlan& OutPlan,
+        FString& OutReason) const;
+
+    TArray<FName> GetTechniqueTransitionOptions(
+        FName FromTechniqueId,
+        float Elapsed,
+        const FGameplayTagContainer& ContextTags) const;
+
+    bool ResolveTechniqueTransition(
+        FName FromTechniqueId,
+        FName ToTechniqueId,
+        float Elapsed,
+        const FGameplayTagContainer& ContextTags,
+        FKashmirTechniqueTransitionRule& OutRule,
         FString& OutReason) const;
 };

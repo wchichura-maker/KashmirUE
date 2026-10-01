@@ -318,6 +318,7 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
     Plan.MontageSection = TechniquePlan.Technique.MontageSection;
     Plan.PlayRate = TechniquePlan.Technique.PlayRate;
     Plan.TechniqueId = TechniquePlan.Technique.TechniqueId;
+    Plan.StyleId = TechniquePlan.StyleId;
     Plan.MovementIntent = TechniquePlan.Technique.MovementIntent;
     Plan.MovementSpec = TechniquePlan.Technique.MovementSpec;
     if (TechniquePlan.Technique.bOverrideSwordPresentation)
@@ -325,7 +326,26 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
         Plan.PoseConfig = TechniquePlan.Technique.SwordPresentation;
     }
 
-    const bool bStarted = StartResolvedPlan(Plan, OutReason);
+    const FKashmirActionRuntimeState CurrentState = GetRuntimeState();
+    FKashmirTechniqueTransitionRule TransitionRule;
+    FString TransitionReason;
+    const bool bHasEligibleTransition =
+        CurrentState.bActive &&
+        ActivePlan.bResolved &&
+        !ActivePlan.TechniqueId.IsNone() &&
+        ActivePlan.StyleId == TechniquePlan.StyleId &&
+        Style->ResolveTechniqueTransition(
+            ActivePlan.TechniqueId,
+            TechniquePlan.Technique.TechniqueId,
+            CurrentState.Elapsed,
+            Request.ContextTags,
+            TransitionRule,
+            TransitionReason);
+
+    const bool bStarted = bHasEligibleTransition
+        ? TryTransitionTechnique(
+            Plan, TransitionRule, Request.ContextTags, OutReason)
+        : StartResolvedPlan(Plan, OutReason);
     if (!bStarted)
     {
         LastTechniqueRequestReason = OutReason;
@@ -334,12 +354,35 @@ bool UKashmirDirectionalSwordComponent::StartTechniqueRequest(
 }
 
 
-bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
+bool UKashmirDirectionalSwordComponent::ValidateResolvedPlan(
     const FKashmirSwordActionPlan& Plan,
-    FString& OutReason)
+    FString& OutReason) const
 {
-    if (Runtime == nullptr && !RebuildRuntime(OutReason))
+    OutReason.Reset();
+    if (!Plan.bResolved || !Plan.Gesture.ActionRequest.IsValid(OutReason) ||
+        !Plan.RuntimeDefinition.IsValid(OutReason))
     {
+        if (OutReason.IsEmpty())
+        {
+            OutReason = TEXT("sword action requires a resolved valid plan");
+        }
+        return false;
+    }
+    if (Plan.Montage.IsNull() ||
+        !FMath::IsFinite(Plan.PlayRate) || Plan.PlayRate <= 0.0f)
+    {
+        OutReason = TEXT("sword action requires a montage and positive play rate");
+        return false;
+    }
+    if (PresentationComponent != nullptr &&
+        Plan.Montage.LoadSynchronous() == nullptr)
+    {
+        OutReason = TEXT("sword action presentation montage could not be loaded");
+        return false;
+    }
+    if (Runtime == nullptr)
+    {
+        OutReason = TEXT("sword action requires an initialized runtime");
         return false;
     }
     if (Plan.MovementSpec.Delivery ==
@@ -365,15 +408,28 @@ bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
     }
     if (MovementDeliveryComponent != nullptr)
     {
-        if (!MovementDeliveryComponent->CanStartDelivery(
-                Plan.MovementSpec, OutReason))
-        {
-            return false;
-        }
+        return MovementDeliveryComponent->CanStartDelivery(
+            Plan.MovementSpec, OutReason);
     }
-    else if (Plan.MovementSpec.Delivery != EKashmirMovementDelivery::None)
+    if (Plan.MovementSpec.Delivery != EKashmirMovementDelivery::None)
     {
         OutReason = TEXT("controlled translation requires a movement delivery component");
+        return false;
+    }
+    return true;
+}
+
+
+bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
+    const FKashmirSwordActionPlan& Plan,
+    FString& OutReason)
+{
+    if (Runtime == nullptr && !RebuildRuntime(OutReason))
+    {
+        return false;
+    }
+    if (!ValidateResolvedPlan(Plan, OutReason))
+    {
         return false;
     }
     const FKashmirActionRuntimeState CurrentState = Runtime->GetState();
@@ -408,6 +464,93 @@ bool UKashmirDirectionalSwordComponent::StartResolvedPlan(
     SynchronizeTraceWindow(CurrentState, StartedState);
     ApplyPresentation(StartedState);
     return true;
+}
+
+
+bool UKashmirDirectionalSwordComponent::TryTransitionTechnique(
+    const FKashmirSwordActionPlan& Plan,
+    const FKashmirTechniqueTransitionRule& TechniqueRule,
+    const FGameplayTagContainer& ContextTags,
+    FString& OutReason)
+{
+    if (Runtime == nullptr || !ActivePlan.bResolved)
+    {
+        OutReason = TEXT("technique transition requires an active resolved plan");
+        return false;
+    }
+    if (!ValidateResolvedPlan(Plan, OutReason))
+    {
+        return false;
+    }
+
+    const FKashmirActionRuntimeState SourceState = Runtime->GetState();
+    FKashmirTransitionRule ActionRule;
+    ActionRule.FromActionId = SourceState.ActionId;
+    ActionRule.ToActionId = Plan.Gesture.ActionRequest.ActionId;
+    ActionRule.MinElapsed = TechniqueRule.MinElapsed;
+    ActionRule.MaxElapsed = TechniqueRule.MaxElapsed;
+    ActionRule.Priority = TechniqueRule.Priority;
+    ActionRule.RequiredTags = TechniqueRule.RequiredTags;
+    ActionRule.BlockedTags = TechniqueRule.BlockedTags;
+
+    if (!Runtime->CanTransitionTo(
+            Plan.Gesture.ActionRequest,
+            ActionRule,
+            ContextTags,
+            OutReason))
+    {
+        return false;
+    }
+
+    // Commit the lower-level runtime first. Preflight above makes failure
+    // non-destructive; no external A subsystem is ended until commit succeeds.
+    if (!Runtime->TransitionTo(
+            Plan.Gesture.ActionRequest,
+            ActionRule,
+            ContextTags,
+            OutReason))
+    {
+        return false;
+    }
+
+    if (WeaponTraceComponent != nullptr)
+    {
+        WeaponTraceComponent->EndTraceWindow();
+    }
+    if (MovementDeliveryComponent != nullptr)
+    {
+        MovementDeliveryComponent->TransitionDelivery();
+    }
+    if (PresentationComponent != nullptr)
+    {
+        PresentationComponent->StopPresentation();
+    }
+
+    ActivePlan = Plan;
+    const FKashmirActionRuntimeState DestinationState = Runtime->GetState();
+    if (MovementDeliveryComponent != nullptr &&
+        !MovementDeliveryComponent->StartDelivery(
+            Plan.MovementSpec,
+            DestinationState.ActionId,
+            OutReason))
+    {
+        return false;
+    }
+    ResetTraceForTransition(DestinationState);
+    ApplyPresentation(DestinationState);
+    return true;
+}
+
+
+void UKashmirDirectionalSwordComponent::ResetTraceForTransition(
+    const FKashmirActionRuntimeState& DestinationState)
+{
+    if (WeaponTraceComponent != nullptr &&
+        DestinationState.bActive &&
+        DestinationState.Phase == EKashmirActionPhase::Active)
+    {
+        WeaponTraceComponent->BeginTraceWindow();
+    }
 }
 
 
@@ -460,6 +603,13 @@ UKashmirDirectionalSwordComponent::GetRuntimeState() const
     return Runtime != nullptr
         ? Runtime->GetState()
         : FKashmirActionRuntimeState{};
+}
+
+
+TArray<FKashmirActionEvent>
+UKashmirDirectionalSwordComponent::DrainRuntimeEvents()
+{
+    return Runtime != nullptr ? Runtime->DrainEvents() : TArray<FKashmirActionEvent>{};
 }
 
 

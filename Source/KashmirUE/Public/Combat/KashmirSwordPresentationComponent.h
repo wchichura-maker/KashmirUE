@@ -32,6 +32,9 @@ struct KASHMIRUE_API FKashmirSwordPresentationState
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FName ActionId;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FName TechniqueId;
 };
 
 

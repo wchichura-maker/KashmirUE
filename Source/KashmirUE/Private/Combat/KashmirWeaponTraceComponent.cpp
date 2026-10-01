@@ -35,6 +35,7 @@ void UKashmirWeaponTraceComponent::SetIgnoredActor(
 
 void UKashmirWeaponTraceComponent::BeginTraceWindow()
 {
+    ++TraceWindowGeneration;
     bTraceWindowActive = true;
     bHasPreviousFrame = false;
 
