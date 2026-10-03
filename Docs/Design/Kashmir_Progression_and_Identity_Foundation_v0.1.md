@@ -945,6 +945,13 @@ The previous directional-sword roadmap should be replaced by a broader **Weapon 
 
 Suggested future sequence:
 
+> **UE-0035 priority supersession (2026-10-02):** this remains a useful domain
+> dependency sequence, but it no longer means that Combat Progression begins
+> immediately after the current Technique foundation. The Playable Combat
+> Vertical Slice defined in
+> `Kashmir_Playable_Combat_Foundation_v0.1.md` must reach its minimum gate first.
+> UE2.4 is deferred, not cancelled; the progression semantics below are unchanged.
+
 1. Technique Definition
 2. Weapon Combat Style
 3. Technique Input Slots

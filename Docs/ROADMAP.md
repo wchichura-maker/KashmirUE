@@ -395,7 +395,38 @@ Sword permanece a primeira referência jogável pretendida: versatilidade,
 transitions, combo, counter e mistura de slash/thrust. Spear permanece a prova
 contrastante de reach, spacing, interception e comportamento thrust-heavy.
 
+### UE2.3.20 — Playable Combat Vertical Slice — PENDING
+
+**Prioridade ativa:** este incremento precede UE2.4. A arquitetura interna de
+combate atingiu maturidade suficiente para pausar a expansão horizontal de
+sistemas invisíveis e elevar a experiência jogável. UE2.4 permanece planejado,
+mas está deferred até a validação mínima deste slice.
+
+Autoridade normativa:
+`Docs/Design/Kashmir_Playable_Combat_Foundation_v0.1.md`.
+
+- [ ] A. Gameplay / Animation Architecture Audit.
+- [ ] B. Locomotion Foundation.
+- [ ] C. Animation Modularity.
+- [ ] D. Sword Combat Body Mechanics.
+- [ ] E. Attack Timing Architecture, preparada para velocidade variável sem
+  reduzir `AttackExecutionSpeed` a PlayRate uniforme.
+- [ ] F. Attack Transition Presentation.
+- [ ] G. Attack <-> Locomotion.
+- [ ] H. Defense / Dodge Presentation.
+- [ ] I. Hit Reaction / Impact Feel.
+- [ ] J. Playable Combat Validation em `L_CombatTest`.
+
+O gate deve demonstrar Idle -> locomotion -> turns/strafe -> Attack A -> Attack
+B/chaining -> Dodge/defense -> reposition -> attack -> contato real ->
+reaction/feedback -> recovery -> locomotion, mantendo a arquitetura atual
+determinística e observável. Sintomas visuais são problemas para diagnóstico,
+não causas técnicas presumidas.
+
 ### UE2.4 — Combat Progression — PENDING
+
+**Deferred, não cancelado:** inicia depois do gate mínimo de UE2.3.20. A
+estrutura de domínio abaixo permanece válida.
 
 - [ ] Mastery Channels.
 - [ ] Progression Evidence.

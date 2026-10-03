@@ -985,3 +985,36 @@
   TechniqueTransitionGrammar 9/9; TechniqueRequestBuffer 7/7;
   CombatOutcomeEvidence 8/8; DirectionalSword 19/19; Combat 207/207;
   Foundation 6/6; full `KashmirUEEditor Win64 Development` build passa.
+
+## UE-0035 — Playable Combat primeiro; atributos por parâmetros derivados
+
+- **Status da decisão:** **DECIDED** em 2026-10-02.
+- A prioridade ativa passa a ser `UE2.3.20 — Playable Combat Vertical Slice`.
+  UE2.4 Combat Progression está deferred, não cancelado, até existir um slice
+  com locomoção, corpo/arma, transitions, defesa, contato, impacto e recovery
+  com qualidade mínima validada.
+- BDO referencia controle direto, fluidez e combat movement; DMC referencia
+  continuidade, chaining e baixo dead-time; Black Myth: Wukong referencia peso,
+  antecipação, transferência corporal, follow-through, recovery e impacto.
+  Kashmir não copia esses jogos e não obtém velocidade somente por PlayRate.
+- Política `Unreal-native-first`: problemas genéricos devem ser avaliados contra
+  recursos nativos e samples maduros antes de criar substitutos proprietários.
+  C++ continua autoridade de contratos/regras; Blueprints e assets nativos são
+  válidos para authoring, configuração, animation e presentation.
+- Os Primary Attributes futuros são `STR`, `AGI`, `VIT`, `INT`, `DEX`, `WIS` e
+  `CHA`. Ragnarok inspira Primary -> Derived -> Gameplay sem copiar fórmulas;
+  D&D é referência conceitual secundária para INT/WIS/CHA. `CHA` não é LUK
+  renomeado e não há LUK oculto decidido.
+- AGI e DEX participarão futuramente de um parâmetro derivado provisoriamente
+  chamado `AttackExecutionSpeed`, junto de equipment, weapon, modifiers, state e
+  Technique rules. AnimBP/Montage não consomem atributos primários diretamente.
+- GAS é o framework preferencial a avaliar para attributes, resources, effects,
+  status e modifiers; não está implementado e não substitui automaticamente
+  Technique, ActionRuntime, HitEvidence, CombatResult ou CombatOutcome.
+- Nenhum atributo ou fórmula é implementado nesta fase. A arquitetura de
+  animação/timing deve primeiro ficar preparada para variação de velocidade sem
+  assumir que toda Technique dura sempre os mesmos segundos absolutos.
+- Detalhamento normativo:
+  `Docs/Design/Kashmir_Playable_Combat_Foundation_v0.1.md` e
+  `Docs/Design/Kashmir_Attributes_Foundation_v0.1.md`; estado factual em
+  `Docs/Design/Kashmir_Unreal_Gameplay_Animation_Audit_v0.1.md`.
